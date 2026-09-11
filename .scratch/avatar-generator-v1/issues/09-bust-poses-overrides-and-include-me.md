@@ -4,17 +4,22 @@
 
 **Blocked by:** 07 — The Teacher's own Avatar; 08 — Download a head-only Cutout Set
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] The renderer draws bust framing: a head on any of the 23 allowed bust Poses. The body fill is the clothing color with black lines, per ADR 0006.
-- [ ] The Cutout Set options offer head-only or bust framing. Bust framing requires choosing a Pose, shown as pictures with accessible names.
-- [ ] Optional overrides: one Expression for everyone, and one clothing color for everyone. Without them, each Student's own values are used.
-- [ ] An "include me" switch starts off. When on, the Teacher's own Avatar is added to the set, and the switch is disabled when the Teacher has no Avatar.
-- [ ] A preview shows the set with the current framing, Pose, overrides and labels before downloading.
-- [ ] A bust Cutout Set zip is named after the Class and the Pose.
-- [ ] The hidden data in each PNG still holds the Avatar's own favorite Expression and clothing color, not the overrides.
-- [ ] End-to-end tests cover:
-  - [ ] a bust set in a chosen Pose
-  - [ ] each override
-  - [ ] include me on and off, including the file count
-  - [ ] the zip name with a Pose
+- [x] The renderer draws bust framing: a head on any of the 23 allowed bust Poses. The body fill is the clothing color with black lines, per ADR 0006.
+- [x] The Cutout Set options offer head-only or bust framing. Bust framing requires choosing a Pose, shown as pictures with accessible names.
+- [x] Optional overrides: one Expression for everyone, and one clothing color for everyone. Without them, each Student's own values are used.
+- [x] An "include me" switch starts off. When on, the Teacher's own Avatar is added to the set, and the switch is disabled when the Teacher has no Avatar.
+- [x] A preview shows the set with the current framing, Pose, overrides and labels before downloading.
+- [x] A bust Cutout Set zip is named after the Class and the Pose.
+- [x] The hidden data in each PNG still holds the Avatar's own favorite Expression and clothing color, not the overrides.
+- [x] End-to-end tests cover:
+  - [x] a bust set in a chosen Pose
+  - [x] each override
+  - [x] include me on and off, including the file count
+  - [x] the zip name with a Pose
+
+## Comments
+
+- The Teacher's own piece is called "Teacher.png" and labelled "Teacher", because the Teacher's Avatar has no Display Name (ticket 07 skips the name question). If that reads wrong in a classroom, the fix is a name on the Teacher's Avatar, not a name typed into the Cutout Set.
+- The preview is deliberately not a list. The Class already has one list of Students, and a second would make "the students" ambiguous to a screen reader.

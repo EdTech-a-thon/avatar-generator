@@ -4,12 +4,17 @@
 
 **Blocked by:** 02 — A Student saves and reopens their own Cutout; 03 — A Class fills up from "Add a student" tabs
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] The Class view accepts several files at once, through dropping and through a file picker.
-- [ ] Each valid Cutout adds exactly one new Student with the hidden Avatar and the hidden name as its Display Name. The app never tries to match it to an existing Student.
-- [ ] For a valid Cutout with no name, the Teacher is asked to type a Display Name before that Student is added.
-- [ ] A PNG with no Avatar data shows: "This picture doesn't have avatar info inside. Ask the student to turn in the saved file, not a screenshot." A non-PNG file shows a "not a Cutout" message.
-- [ ] In a mixed drop, each file is handled on its own. Valid Cutouts are added and all messages are shown together.
-- [ ] Cutouts downloaded from a Cutout Set can be imported the same way.
-- [ ] End-to-end tests drop: three valid Cutouts at once, a Cutout with no name, and the checked-in negative fixtures from ticket 02. They check the resulting Students and messages.
+- [x] The Class view accepts several files at once, through dropping and through a file picker.
+- [x] Each valid Cutout adds exactly one new Student with the hidden Avatar and the hidden name as its Display Name. The app never tries to match it to an existing Student.
+- [x] For a valid Cutout with no name, the Teacher is asked to type a Display Name before that Student is added.
+- [x] A PNG with no Avatar data shows: "This picture doesn't have avatar info inside. Ask the student to turn in the saved file, not a screenshot." A non-PNG file shows a "not a Cutout" message.
+- [x] In a mixed drop, each file is handled on its own. Valid Cutouts are added and all messages are shown together.
+- [x] Cutouts downloaded from a Cutout Set can be imported the same way.
+- [x] End-to-end tests drop: three valid Cutouts at once, a Cutout with no name, and the checked-in negative fixtures from ticket 02. They check the resulting Students and messages.
+
+## Comments
+
+- "Cutouts downloaded from a Cutout Set can be imported the same way" is carried by the codec: a Cutout Set PNG is written by the same `putCutoutData`, so nothing about import needs to know where a picture came from. Ticket 08 adds the test that downloads a set and imports one of its files.
+- Three more fixtures were added for this ticket (`cutout-maya.png`, `cutout-leo.png`, `cutout-ava.png`) plus `no-name-cutout.png`. Regenerating produced a byte-identical `golden-cutout.png`, so the guarantee in ticket 02 is intact.

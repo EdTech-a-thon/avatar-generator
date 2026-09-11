@@ -1,0 +1,21 @@
+@import "tailwindcss";
+
+/* Every font is served by the app itself: a hosted font would be an outside
+   request, which the privacy promise rules out (ADR 0008). */
+@font-face {
+  font-family: "Fredoka";
+  font-style: normal;
+  font-weight: 400 600;
+  font-display: block;
+  src: url("/fonts/fredoka.woff2") format("woff2");
+}
+
+@theme {
+  --font-display: "Fredoka", ui-rounded, "Segoe UI", system-ui, sans-serif;
+}
+
+html {
+  font-family: var(--font-display);
+  background-color: var(--color-sky-50);
+  color: var(--color-slate-800);
+}

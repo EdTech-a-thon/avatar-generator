@@ -12,9 +12,15 @@ The app keeps that promise: it makes no requests to outside services, and fonts 
 
 **Blocked by:** 01 — The Builder shows a live Avatar
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] A privacy page reachable from every main screen states each promise above in plain language that a Teacher can read to a principal.
-- [ ] All fonts, art and scripts are served from the app itself. There are no hosted fonts, CDNs, analytics or ad scripts.
-- [ ] An end-to-end test walks through every screen available at the time, including the Builder and the privacy page, and fails if any request goes to an origin other than the app's own.
-- [ ] Later tickets that add screens extend this test to cover them.
+- [x] A privacy page reachable from every main screen states each promise above in plain language that a Teacher can read to a principal.
+- [x] All fonts, art and scripts are served from the app itself. There are no hosted fonts, CDNs, analytics or ad scripts.
+- [x] An end-to-end test walks through every screen available at the time, including the Builder and the privacy page, and fails if any request goes to an origin other than the app's own.
+- [x] Later tickets that add screens extend this test to cover them.
+
+## Comments
+
+- Every v1 screen already exists, so the walk covers all of them: the Class with Students, chart pieces in a Pose with both overrides, the class file, the Teacher's own Avatar through the Builder, a Student saving a picture, and the privacy page.
+- Blob and data URLs are allowed through: those are pictures the app made itself, not requests to anyone.
+- The privacy page links to openpeeps.com to credit the artwork. A link is not a request, and nothing is fetched from there.
