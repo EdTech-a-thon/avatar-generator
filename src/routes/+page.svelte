@@ -36,6 +36,14 @@
     type ImportProblem,
     type ReadFromFile,
   } from "$lib/cutout/import";
+  import type { Student } from "$lib/classroom.svelte";
+  import {
+    cutoutFileName,
+    cutoutPng,
+    download,
+    SET_CUTOUT_HEIGHT,
+  } from "$lib/cutout/save";
+  import { cutoutSetFileName, cutoutSetZip } from "$lib/cutout/set";
 
   const room = $derived(currentClass());
   const mine = $derived(teacherAvatar());
@@ -105,6 +113,37 @@
     if (!renaming) return;
     renameStudent(room.id, renaming, newName);
     renaming = undefined;
+  }
+
+  /** Names under the pictures is what most charts want, so it starts on. */
+  let withNames = $state(true);
+  let busy = $state(false);
+
+  async function downloadSet() {
+    busy = true;
+    try {
+      const zip = await cutoutSetZip({
+        className: room.name,
+        students: room.students,
+        framing: "head",
+        label: withNames,
+      });
+      download(zip, cutoutSetFileName(room.name));
+    } finally {
+      busy = false;
+    }
+  }
+
+  /** One lost chart piece, made again the same way the whole set is. */
+  async function downloadOne(student: Student) {
+    const picture = await cutoutPng({
+      avatar: student.avatar,
+      framing: "head",
+      height: SET_CUTOUT_HEIGHT,
+      ...(withNames ? { label: student.name } : {}),
+      data: { avatar: student.avatar, name: student.name },
+    });
+    download(picture, cutoutFileName(student.name));
   }
 </script>
 
@@ -301,6 +340,13 @@
               <button
                 type="button"
                 class="rounded-xl bg-white px-3 py-1 font-semibold text-slate-700 ring-2 ring-slate-300"
+                onclick={() => downloadOne(student)}
+              >
+                Download
+              </button>
+              <button
+                type="button"
+                class="rounded-xl bg-white px-3 py-1 font-semibold text-slate-700 ring-2 ring-slate-300"
                 onclick={() => startRenaming(student.id, student.name)}
               >
                 Rename
@@ -362,6 +408,36 @@
     >
       No students yet. Tap “Add a student” and hand over the laptop.
     </p>
+  {/if}
+
+  {#if room && room.students.length > 0}
+    <section
+      aria-label="Chart pieces"
+      class="flex flex-col items-start gap-3 rounded-3xl bg-white p-4 ring-1 ring-slate-200"
+    >
+      <h2 class="text-xl font-semibold text-slate-900">Chart pieces</h2>
+      <p class="text-slate-600">
+        One picture per student, on a see-through background, big enough to
+        print and laminate. Every picture carries its avatar, so this set is
+        also a way to get your class back.
+      </p>
+      <label class="flex items-center gap-2 text-lg text-slate-700">
+        <input
+          type="checkbox"
+          bind:checked={withNames}
+          class="h-5 w-5 accent-sky-600"
+        />
+        Put names under the pictures
+      </label>
+      <button
+        type="button"
+        disabled={busy}
+        class="rounded-2xl bg-sky-600 px-6 py-3 text-lg font-semibold text-white hover:bg-sky-700 disabled:opacity-40"
+        onclick={downloadSet}
+      >
+        Download all cutouts
+      </button>
+    </section>
   {/if}
 
   <details class="rounded-3xl bg-white p-4 ring-1 ring-slate-200">

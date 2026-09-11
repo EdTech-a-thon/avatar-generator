@@ -1,5 +1,6 @@
 /**
- * Turning a rendered Avatar into a Cutout the Student can turn in.
+ * Turning a rendered Avatar into a Cutout: a picture that can be printed,
+ * laminated, dropped into Slides, or turned in.
  *
  * On screen an Avatar is DOM SVG. A Cutout has to be a PNG, because that is
  * what Google Classroom, Seesaw, Slides and a laminator all understand, so this
@@ -9,13 +10,36 @@
  */
 import { figure, type FigureOptions } from "../render";
 import { putCutoutData, type CutoutData } from "./codec";
+import { LABEL_FAMILY, labelFontFace } from "./font";
 
 /** Seesaw resizes anything bigger, which would throw the hidden data away. */
 export const STUDENT_CUTOUT_HEIGHT = 1400;
 
-export function svgMarkup(options: FigureOptions): string {
+/** Big enough to print a chart piece at about half a page. */
+export const SET_CUTOUT_HEIGHT = 1500;
+
+/** Room under the figure for a name, in the drawing's own units. */
+const LABEL_SPACE = 260;
+
+export interface Labelled extends FigureOptions {
+  /** The Display Name written under the figure. Nothing is written without it. */
+  label?: string;
+  /** The `@font-face` to carry inside the picture, from `labelFontFace`. */
+  fontFace?: string;
+}
+
+/** The box the finished picture covers, which grows when a name is written. */
+function boxFor(options: Labelled) {
   const drawn = figure(options);
-  const shapes = drawn.groups
+  const [x, y, width, height] = drawn.viewBox.split(" ").map(Number);
+  return options.label
+    ? { drawn, x, y, width, height: height + LABEL_SPACE }
+    : { drawn, x, y, width, height };
+}
+
+export function svgMarkup(options: Labelled): string {
+  const box = boxFor(options);
+  const shapes = box.drawn.groups
     .map(
       (group) =>
         `<g${group.transform ? ` transform="${group.transform}"` : ""}>` +
@@ -32,7 +56,33 @@ export function svgMarkup(options: FigureOptions): string {
         "</g>",
     )
     .join("");
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${drawn.viewBox}">${shapes}</svg>`;
+
+  let label = "";
+  if (options.label) {
+    // A long name gets smaller rather than running off the edge of the piece.
+    const size = Math.min(
+      170,
+      Math.round(1500 / Math.max(options.label.length, 1)),
+    );
+    label =
+      `<text x="${box.x + box.width / 2}" y="${box.y + box.height - LABEL_SPACE / 3}"` +
+      ` text-anchor="middle" font-family="${LABEL_FAMILY}" font-size="${size}"` +
+      ` font-weight="600" fill="#0f172a">${escaped(options.label)}</text>`;
+  }
+
+  const style = options.fontFace ? `<style>${options.fontFace}</style>` : "";
+  return (
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${box.x} ${box.y} ${box.width} ${box.height}">` +
+    `${style}${shapes}${label}</svg>`
+  );
+}
+
+function escaped(text: string) {
+  return text
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
 }
 
 async function drawToPng(
@@ -72,25 +122,36 @@ async function drawToPng(
   }
 }
 
-export interface CutoutOptions extends FigureOptions {
+export interface CutoutOptions extends Labelled {
   /** How tall the finished PNG is. The width follows the drawing's shape. */
   height: number;
   data: CutoutData;
 }
 
+/** The PNG bytes of one Cutout, Avatar and name already hidden inside. */
+export async function cutoutBytes(options: CutoutOptions): Promise<Uint8Array> {
+  const fontFace = options.label ? await labelFontFace() : undefined;
+  const withFont = { ...options, fontFace };
+  const box = boxFor(withFont);
+  const width = Math.round((box.width / box.height) * options.height);
+  const png = await drawToPng(svgMarkup(withFont), width, options.height);
+  return putCutoutData(png, options.data);
+}
+
 export async function cutoutPng(options: CutoutOptions): Promise<Blob> {
-  const drawn = figure(options);
-  const width = Math.round((drawn.width / drawn.height) * options.height);
-  const png = await drawToPng(svgMarkup(options), width, options.height);
-  return new Blob([putCutoutData(png, options.data) as BlobPart], {
+  return new Blob([(await cutoutBytes(options)) as BlobPart], {
     type: "image/png",
   });
 }
 
 /** A file name a Teacher can find in their downloads, from any name typed. */
 export function cutoutFileName(name: string): string {
-  const tidy = name.trim().replace(/[^\p{L}\p{N} '-]/gu, "");
-  return `${tidy || "avatar"}.png`;
+  return `${tidyName(name) || "avatar"}.png`;
+}
+
+/** Keeps a name usable as a file name without mangling "José" or "Maya R.". */
+export function tidyName(name: string): string {
+  return name.trim().replace(/[^\p{L}\p{N} '-]/gu, "");
 }
 
 export function download(blob: Blob, fileName: string) {
