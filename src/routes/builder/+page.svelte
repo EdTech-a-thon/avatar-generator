@@ -1,15 +1,22 @@
 <script lang="ts">
   /**
-   * The Builder on a Student's own device.
+   * The Builder, in the two places it gets used.
    *
-   * Finishing saves a picture to their downloads, which they turn in like any
-   * other assignment. That picture is also their save file: the Avatar is
-   * hidden inside it, so dropping it back here brings every choice back.
+   * On a Student's own device it saves a picture to their downloads, which they
+   * turn in like any other assignment. That picture is also their save file: the
+   * Avatar is hidden inside it, so dropping it back here brings every choice
+   * back.
+   *
+   * Opened from a Class with `?class=`, it belongs to the Teacher's laptop
+   * instead. Finishing puts the child straight into that Class and starts over
+   * for the next one: no downloads, and nothing to ask the child about.
    */
+  import { page } from "$app/state";
   import { resolve } from "$app/paths";
   import AvatarFigure from "$lib/AvatarFigure.svelte";
   import Builder from "$lib/Builder.svelte";
   import type { Avatar } from "$lib/avatar";
+  import { addStudent, classById } from "$lib/classroom.svelte";
   import { cutoutProblem, readCutout } from "$lib/cutout/codec";
   import {
     cutoutFileName,
@@ -25,6 +32,9 @@
     name: string;
   }
 
+  const room = $derived(classById(page.url.searchParams.get("class")));
+  const forClass = $derived(room !== undefined);
+
   let start = $state<{ avatar?: Avatar; name: string }>({ name: "" });
   /** Bumped to start the Builder again from different choices. */
   let attempt = $state(0);
@@ -33,6 +43,14 @@
   let dropping = $state(false);
 
   onMount(() => {
+    if (page.url.searchParams.has("class")) {
+      // A Class tab that isn't in this browser is worth saying out loud, since
+      // the Teacher would otherwise wonder where their Student went.
+      if (!room)
+        message =
+          "That class isn't in this browser, so this avatar won't be added to it.";
+      return;
+    }
     const remembered = lastAvatar();
     if (!remembered) return;
     start = remembered;
@@ -50,6 +68,14 @@
   }
 
   async function finish(made: Made) {
+    if (room) {
+      addStudent(room.id, made);
+      message = `${made.name} is in the class. The next student can start!`;
+      start = { name: "" };
+      attempt += 1;
+      return;
+    }
+
     finished = made;
     rememberAvatar(made);
     try {
@@ -81,11 +107,13 @@
 
 <svelte:window
   ondragover={(event) => {
+    if (forClass) return;
     event.preventDefault();
     dropping = true;
   }}
   ondragleave={() => (dropping = false)}
   ondrop={(event) => {
+    if (forClass) return;
     event.preventDefault();
     dropping = false;
     open(event.dataTransfer?.files[0]);
@@ -145,30 +173,32 @@
       <Builder
         avatar={start.avatar}
         name={start.name}
-        finishLabel="Save my picture"
+        finishLabel={forClass ? "I'm done" : "Save my picture"}
         onfinish={finish}
       />
     {/key}
 
-    <div class="mx-auto max-w-5xl px-4 pb-10">
-      <label
-        class="inline-flex cursor-pointer items-center gap-2 rounded-2xl bg-white px-4 py-3 font-semibold text-slate-700 ring-2 ring-slate-300 hover:ring-slate-400"
-      >
-        Open my saved picture
-        <input
-          type="file"
-          accept="image/png"
-          class="sr-only"
-          onchange={(event) => {
-            const input = event.currentTarget;
-            open(input.files?.[0]);
-            input.value = "";
-          }}
-        />
-      </label>
-      <p class="pt-2 text-slate-600">
-        Already made one? Drop your saved picture here to keep working on it.
-      </p>
-    </div>
+    {#if !forClass}
+      <div class="mx-auto max-w-5xl px-4 pb-10">
+        <label
+          class="inline-flex cursor-pointer items-center gap-2 rounded-2xl bg-white px-4 py-3 font-semibold text-slate-700 ring-2 ring-slate-300 hover:ring-slate-400"
+        >
+          Open my saved picture
+          <input
+            type="file"
+            accept="image/png"
+            class="sr-only"
+            onchange={(event) => {
+              const input = event.currentTarget;
+              open(input.files?.[0]);
+              input.value = "";
+            }}
+          />
+        </label>
+        <p class="pt-2 text-slate-600">
+          Already made one? Drop your saved picture here to keep working on it.
+        </p>
+      </div>
+    {/if}
   {/if}
 </main>

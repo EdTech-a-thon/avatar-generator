@@ -5,7 +5,7 @@
  * future version has to open it and show exactly the same choices. The others
  * are the three things that go wrong — a picture that has been re-saved, a file
  * that isn't a PNG at all, and a Cutout that names a part this version doesn't
- * have.
+ * have — plus a small class's worth of Cutouts to import.
  *
  * Run with `bun run fixtures`. It starts its own dev server on a port outside
  * the workspace allocator's range.
@@ -13,11 +13,12 @@
 import { spawn } from "node:child_process";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { chromium } from "@playwright/test";
+import { chromium, type Page } from "@playwright/test";
 import {
   CUTOUT_KEYWORD,
   decodeCutoutData,
   encodeCutoutData,
+  type CutoutData,
 } from "../src/lib/cutout/codec.ts";
 import {
   hiddenText,
@@ -27,19 +28,17 @@ import {
 
 const PORT = 4399;
 const fixtures = path.join(import.meta.dirname, "..", "tests", "fixtures");
+const STEPS = ["Skin", "Hair", "Hair color", "Glasses", "Face", "Clothes"];
 
 /** The choices the golden Cutout holds. Tests check for exactly these. */
-const GOLDEN = {
-  name: "José",
-  choices: [
-    "Skin tone 8",
-    "Afro",
-    "Blonde hair",
-    "Round glasses",
-    "Laughing",
-    "Green clothes",
-  ] as const,
-};
+const GOLDEN = [
+  "Skin tone 8",
+  "Afro",
+  "Blonde hair",
+  "Round glasses",
+  "Laughing",
+  "Green clothes",
+];
 
 const server = spawn(
   "bunx",
@@ -62,57 +61,91 @@ async function waitForServer() {
   throw new Error("the dev server never came up");
 }
 
+/** Builds one Avatar in the real Builder and returns the picture it saves. */
+async function saveCutout(page: Page, name: string, choices: string[]) {
+  await page.goto(`http://127.0.0.1:${PORT}/builder`);
+  for (const [index, choice] of choices.entries()) {
+    await page.getByRole("button", { name: STEPS[index], exact: true }).click();
+    await page.getByRole("button", { name: choice, exact: true }).click();
+  }
+  await page.getByRole("button", { name: "Name", exact: true }).click();
+  await page.getByLabel("What's your first name?").fill(name);
+
+  const saving = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Save my picture" }).click();
+  const bytes = new Uint8Array(await readFile((await (await saving).path())!));
+  if (!decodeCutoutData(hiddenText(bytes, CUTOUT_KEYWORD) ?? "")) {
+    throw new Error(`the picture saved for ${name} has no Avatar inside`);
+  }
+  return bytes;
+}
+
+function retold(golden: Uint8Array, change: (held: CutoutData) => CutoutData) {
+  const held = decodeCutoutData(hiddenText(golden, CUTOUT_KEYWORD)!)!;
+  return withHiddenText(golden, CUTOUT_KEYWORD, encodeCutoutData(change(held)));
+}
+
 try {
   await waitForServer();
   await mkdir(fixtures, { recursive: true });
 
   const browser = await chromium.launch();
   const page = await browser.newPage();
-  await page.goto(`http://127.0.0.1:${PORT}/builder`);
 
-  const steps = ["Skin", "Hair", "Hair color", "Glasses", "Face", "Clothes"];
-  for (const [index, choice] of GOLDEN.choices.entries()) {
-    await page.getByRole("button", { name: steps[index], exact: true }).click();
-    await page.getByRole("button", { name: choice, exact: true }).click();
-  }
-  await page.getByRole("button", { name: "Name", exact: true }).click();
-  await page.getByLabel("What's your first name?").fill(GOLDEN.name);
-
-  const saving = page.waitForEvent("download");
-  await page.getByRole("button", { name: "Save my picture" }).click();
-  const saved = await saving;
-  const golden = new Uint8Array(await readFile((await saved.path())!));
+  const golden = await saveCutout(page, "José", GOLDEN);
+  const classroom = {
+    "cutout-maya.png": await saveCutout(page, "Maya", [
+      "Skin tone 3",
+      "Long hair",
+      "Brown hair",
+      "No glasses",
+      "Big smile",
+      "Purple clothes",
+    ]),
+    "cutout-leo.png": await saveCutout(page, "Leo", [
+      "Skin tone 6",
+      "Short curly hair",
+      "Black hair",
+      "Round glasses",
+      "Cheeky",
+      "Blue clothes",
+    ]),
+    "cutout-ava.png": await saveCutout(page, "Ava", [
+      "Skin tone 1",
+      "Two buns",
+      "Auburn hair",
+      "No glasses",
+      "Cute",
+      "Yellow clothes",
+    ]),
+  };
   await browser.close();
 
-  const text = hiddenText(golden, CUTOUT_KEYWORD);
-  if (!text || !decodeCutoutData(text))
-    throw new Error("the saved picture has no Avatar inside");
-
   await writeFile(path.join(fixtures, "golden-cutout.png"), golden);
+  for (const [name, bytes] of Object.entries(classroom)) {
+    await writeFile(path.join(fixtures, name), bytes);
+  }
+
   await writeFile(
     path.join(fixtures, "no-avatar-data.png"),
     withoutHiddenText(golden, CUTOUT_KEYWORD),
   );
   await writeFile(
     path.join(fixtures, "out-of-range-cutout.png"),
-    withHiddenText(
-      golden,
-      CUTOUT_KEYWORD,
-      encodeCutoutData({
-        ...decodeCutoutData(text)!,
-        avatar: {
-          ...decodeCutoutData(text)!.avatar,
-          hairstyle: 999,
-          expression: -3,
-        },
-      }),
-    ),
+    retold(golden, (held) => ({
+      ...held,
+      avatar: { ...held.avatar, hairstyle: 999, expression: -3 },
+    })),
+  );
+  await writeFile(
+    path.join(fixtures, "no-name-cutout.png"),
+    retold(golden, (held) => ({ ...held, name: "" })),
   );
   await writeFile(
     path.join(fixtures, "not-a-cutout.txt"),
     "This is a note, not a picture of anybody.\n",
   );
-  console.log("wrote fixtures for", GOLDEN.name, text);
+  console.log("wrote the fixtures");
 } finally {
   server.kill();
 }
