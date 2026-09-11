@@ -1,3 +1,7 @@
+---
+status: superseded by ADR-0008
+---
+
 # Teacher accounts hold Classes; Students never contact the server
 
 Teachers want to save Classes and come back to them, so Teachers have accounts and the server stores each Class as is: Display Names and Avatars. We never take photos, and Students have no accounts. Avatars can reveal religion (head coverings), disability (hearing aids, wheelchairs) and race (skin tone), so the data is sensitive even though it isn't a picture. We still chose to store it unencrypted, so a Teacher's names and Avatars follow them to any device. Students only add Avatars through a Station (under the Teacher's session) or a Turn-in Link (which the Teacher imports), so no child ever sends data to the server directly.

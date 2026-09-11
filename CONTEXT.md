@@ -7,11 +7,11 @@ A free tool that lets K–5 teachers and their students make illustrated avatars
 ### People
 
 **Teacher**:
-The adult who owns Classes and has one Avatar of their own, which belongs to their account rather than to any Class. The only person with an account.
+The adult who keeps Classes in their own browser and has one Avatar of their own. Nobody has an account.
 _Avoid_: user, admin, educator
 
 **Student**:
-A child the Teacher adds to a Class by Display Name. The Student then builds their own Avatar. Students have no account.
+A child in a Teacher's Class. Importing a Cutout always adds a new Student, named from the name inside the Cutout, or by the Teacher if it has none.
 _Avoid_: kid, learner, child user
 
 ### The avatar
@@ -38,20 +38,20 @@ _Avoid_: full name, student name, username
 A Teacher's group of Students and their Avatars. A Teacher can have many Classes, and Avatars never move from one Teacher to another.
 _Avoid_: class set, roster, section, classroom
 
-### Getting Avatars into a Class
+**Class File**:
+A file the Teacher downloads that holds all of their Classes and their own Avatar. It can be loaded into any browser, replacing what's already there. It is the only copy outside the browser's own storage.
+_Avoid_: backup, export, config, save file
 
-**Station**:
-A classroom device, signed in as the Teacher and locked to one Class, where Students take turns tapping their own Display Name and building their Avatar. The Avatar saves straight into that Class.
-_Avoid_: kiosk, student mode
+### Making Avatars
 
-**Turn-in Link**:
-A link a Student creates from a finished Avatar and turns in to the Teacher through the school's usual assignment tool. It carries no name. The Teacher matches it to a Student when importing it.
-_Avoid_: share link, join code, invite
+**Builder**:
+The screen where someone makes an Avatar, finishing with their first name. When it's opened from a Class, a finished Avatar goes straight into that Class as a new Student. When it's opened on its own, it saves a Cutout.
+_Avoid_: editor, creator, maker, station
 
 ### Output
 
 **Cutout**:
-An image of one Avatar with one Expression on a transparent background, used as a behavior chart piece or decor, optionally labeled with the Display Name. A Cutout is either head-only (no Pose) or a bust (head and shoulders, with a Pose).
+An image of one Avatar with one Expression on a transparent background, used as a behavior chart piece or decor, optionally labeled with the Display Name. A Cutout is either head-only (no Pose) or a bust (head and shoulders, with a Pose). Every Cutout also carries its Avatar and a name hidden inside the file, so it can be loaded back into the app. A Student turns in their Avatar as a Cutout.
 _Avoid_: sticker, export, image, clip-art
 
 **Cutout Set**:
