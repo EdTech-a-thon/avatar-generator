@@ -17,6 +17,13 @@ export interface Student {
   /** A first name, optionally with a last initial. Exactly as typed. */
   name: string;
   avatar: Avatar;
+  /**
+   * The Student who already had this name when this one arrived. It means the
+   * Class view offers to move the new Avatar onto that Student instead. Two
+   * children really can share a name, so it is only ever an offer, and it sits
+   * here until the Teacher answers it.
+   */
+  duplicateOf?: string;
 }
 
 export interface Classroom {
@@ -66,6 +73,9 @@ export function settleClassroomData(value: unknown): ClassroomData | undefined {
               id: typeof student.id === "string" ? student.id : id(),
               name: typeof student.name === "string" ? student.name : "",
               avatar: settleAvatar(student.avatar),
+              ...(typeof student.duplicateOf === "string"
+                ? { duplicateOf: student.duplicateOf }
+                : {}),
             };
           },
         ),
@@ -145,12 +155,46 @@ export function addStudent(
 ): Student {
   const room = data.classes.find((group) => group.id === classId);
   if (!room) throw new Error("that class is gone");
+  // Exactly the same name, not a loose match: "Maya" and "maya R." are two
+  // different children until the Teacher says otherwise.
+  const sameName = room.students.find((other) => other.name === student.name);
   const added: Student = {
     id: id(),
     name: student.name,
     avatar: student.avatar,
+    ...(sameName ? { duplicateOf: sameName.id } : {}),
   };
   room.students.push(added);
   save();
   return added;
+}
+
+/** Moves the new Avatar onto the Student who already had that name. */
+export function replaceWithDuplicate(classId: string, studentId: string) {
+  const room = data.classes.find((group) => group.id === classId);
+  const arrived = room?.students.find((student) => student.id === studentId);
+  const first = room?.students.find(
+    (student) => student.id === arrived?.duplicateOf,
+  );
+  if (!room || !arrived || !first) return;
+  first.avatar = arrived.avatar;
+  room.students = room.students.filter((student) => student.id !== arrived.id);
+  save();
+}
+
+/** Keeps both Students: two children in one Class really can share a name. */
+export function keepDuplicate(classId: string, studentId: string) {
+  const student = data.classes
+    .find((group) => group.id === classId)
+    ?.students.find((one) => one.id === studentId);
+  if (!student) return;
+  delete student.duplicateOf;
+  save();
+}
+
+export function studentById(
+  room: Classroom,
+  studentId: string | undefined,
+): Student | undefined {
+  return room.students.find((student) => student.id === studentId);
 }

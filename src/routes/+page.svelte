@@ -10,7 +10,13 @@
    */
   import { resolve } from "$app/paths";
   import AvatarFigure from "$lib/AvatarFigure.svelte";
-  import { addStudent, currentClass } from "$lib/classroom.svelte";
+  import {
+    addStudent,
+    currentClass,
+    keepDuplicate,
+    replaceWithDuplicate,
+    studentById,
+  } from "$lib/classroom.svelte";
   import {
     nameList,
     readCutoutFiles,
@@ -185,6 +191,34 @@
           <span class="text-lg font-semibold text-slate-800"
             >{student.name}</span
           >
+
+          {#if student.duplicateOf}
+            {@const first = studentById(room, student.duplicateOf)}
+            <div
+              class="flex flex-col items-center gap-2 rounded-2xl bg-amber-50 p-3 text-center ring-1 ring-amber-300"
+            >
+              <p class="text-amber-900">
+                There's already a {first?.name ?? student.name}. Replace their
+                avatar instead?
+              </p>
+              <div class="flex flex-wrap justify-center gap-2">
+                <button
+                  type="button"
+                  class="rounded-xl bg-sky-600 px-3 py-2 font-semibold text-white hover:bg-sky-700"
+                  onclick={() => replaceWithDuplicate(room.id, student.id)}
+                >
+                  Replace
+                </button>
+                <button
+                  type="button"
+                  class="rounded-xl bg-white px-3 py-2 font-semibold text-slate-700 ring-2 ring-slate-300"
+                  onclick={() => keepDuplicate(room.id, student.id)}
+                >
+                  Keep both
+                </button>
+              </div>
+            </div>
+          {/if}
         </li>
       {/each}
     </ul>
