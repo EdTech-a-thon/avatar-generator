@@ -39,7 +39,16 @@ export function decodeCutoutData(text: string): CutoutData | undefined {
   }
   if (typeof parsed !== "object" || parsed === null) return undefined;
   const held = parsed as Record<string, unknown>;
-  if (held.version !== CUTOUT_FORMAT_VERSION) return undefined;
+  // A Cutout saved by an older version still opens: part lists only ever grow
+  // (ADR 0010), so the positions inside it still mean what they meant. Only a
+  // version that doesn't exist yet is refused, because we can't read the
+  // future. Teachers' drives are full of these files for years (ADR 0009).
+  if (
+    typeof held.version !== "number" ||
+    held.version > CUTOUT_FORMAT_VERSION
+  ) {
+    return undefined;
+  }
   return {
     avatar: settleAvatar(held),
     name: typeof held.name === "string" ? held.name.trim() : "",

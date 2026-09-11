@@ -15,6 +15,9 @@ export async function labelFontFace(): Promise<string> {
   if (carried !== undefined) return carried;
   try {
     const response = await fetch(`${base}/fonts/fredoka.woff2`);
+    // A 404 resolves like any other response, and carrying its body into the
+    // picture would make a broken font instead of an honest fallback.
+    if (!response.ok) throw new Error("the font is not there");
     const bytes = new Uint8Array(await response.arrayBuffer());
     let binary = "";
     for (const byte of bytes) binary += String.fromCharCode(byte);

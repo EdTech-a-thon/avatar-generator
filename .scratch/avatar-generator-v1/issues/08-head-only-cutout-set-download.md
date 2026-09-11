@@ -13,3 +13,8 @@
 - [x] Every PNG carries hidden data (format version, Avatar positions, name), whether or not the label is shown.
 - [x] The Teacher can download one Student's Cutout on its own, with the same rules.
 - [x] End-to-end tests download a Cutout Set and check: the zip name, the entry names including a duplicate suffix, PNG dimensions and transparency, and the hidden data in each entry, with the label on and off.
+
+## Comments
+
+- The numeric suffix counts up until the name is free rather than counting Mayas, because a Class can hold "Maya", another "Maya", and a child whose Display Name really is "Maya 2". They come out as `Maya.png`, `Maya 2.png` and `Maya 2 2.png`: ugly, but nobody is missing from the printed chart.
+- A single Student's Download uses whatever the Chart pieces panel is set to, so a replacement for one lost clothespin matches the rest of the chart.

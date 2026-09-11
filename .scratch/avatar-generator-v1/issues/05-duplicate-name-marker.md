@@ -21,3 +21,4 @@
 
 - The marker reads "There's already a Maya. Replace their avatar instead?" rather than the "her" in the ticket. The app never knows a child's gender, and a Display Name doesn't tell it, so it doesn't guess.
 - The two answers are "Replace" and "Keep both". Both buttons sit on the new Student's card, which is what makes them unambiguous when a Class has several markers at once.
+- A third answer exists without a button: removing the Student a marker points at. That clears the marker too, because "Replace Maya's avatar" can't mean anything once Maya is gone. Code review caught this as a Replace button that silently did nothing.

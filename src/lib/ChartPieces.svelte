@@ -19,6 +19,7 @@
     expressions,
     poses,
   } from "./catalog";
+  import { chart, chartClothingColor, chartExpression } from "./chart.svelte";
   import {
     teacherAvatar,
     type Classroom,
@@ -30,15 +31,8 @@
 
   let { room }: { room: Classroom } = $props();
 
-  let framing = $state<Framing>("head");
-  let pose = $state(0);
-  let sameFace = $state(false);
-  let chosenFace = $state(0);
-  let sameClothes = $state(false);
-  let chosenClothes = $state(0);
-  let withNames = $state(true);
-  let includeMe = $state(false);
   let busy = $state(false);
+  let trouble = $state("");
 
   const mine = $derived(teacherAvatar());
   /** Someone to show the Pose pictures on: a Student if there is one. */
@@ -46,28 +40,34 @@
 
   const everyone = $derived<Student[]>([
     ...room.students,
-    ...(includeMe && mine ? [{ id: "me", name: "Teacher", avatar: mine }] : []),
+    ...(chart.includeMe && mine
+      ? [{ id: "me", name: "Teacher", avatar: mine }]
+      : []),
   ]);
 
-  const expression = $derived(sameFace ? chosenFace : undefined);
-  const clothingColor = $derived(sameClothes ? chosenClothes : undefined);
+  const expression = $derived(chartExpression());
+  const clothingColor = $derived(chartClothingColor());
   const poseLabel = $derived(
-    framing === "bust" ? entryAt(poses, pose).label : undefined,
+    chart.framing === "bust" ? entryAt(poses, chart.pose).label : undefined,
   );
 
   async function downloadSet() {
     busy = true;
+    trouble = "";
     try {
       const zip = await cutoutSetZip({
         className: room.name,
         students: everyone,
-        framing,
-        pose,
+        framing: chart.framing,
+        pose: chart.pose,
         expression,
         clothingColor,
-        label: withNames,
+        label: chart.withNames,
       });
       download(zip, cutoutSetFileName(room.name, poseLabel));
+    } catch {
+      trouble =
+        "Your browser couldn't make the pictures. Try again, or try a smaller class.";
     } finally {
       busy = false;
     }
@@ -92,19 +92,19 @@
     {#each [{ value: "head", label: "Just faces" }, { value: "bust", label: "Head and shoulders" }] as option (option.value)}
       <button
         type="button"
-        aria-pressed={framing === option.value}
-        class="rounded-full px-4 py-2 font-semibold ring-2 {framing ===
+        aria-pressed={chart.framing === option.value}
+        class="rounded-full px-4 py-2 font-semibold ring-2 {chart.framing ===
         option.value
           ? 'bg-slate-900 text-white ring-slate-900'
           : 'bg-white text-slate-700 ring-slate-300'}"
-        onclick={() => (framing = option.value as Framing)}
+        onclick={() => (chart.framing = option.value as Framing)}
       >
         {option.label}
       </button>
     {/each}
   </fieldset>
 
-  {#if framing === "bust"}
+  {#if chart.framing === "bust"}
     <div class="flex flex-col gap-2">
       <h3 class="font-semibold text-slate-800">Pick a pose for everyone</h3>
       <ul
@@ -115,12 +115,12 @@
           <li>
             <button
               type="button"
-              aria-pressed={pose === choice.position}
-              class="w-full rounded-2xl bg-white p-1 ring-2 {pose ===
+              aria-pressed={chart.pose === choice.position}
+              class="w-full rounded-2xl bg-white p-1 ring-2 {chart.pose ===
               choice.position
                 ? 'ring-sky-600'
                 : 'ring-slate-200 hover:ring-slate-400'}"
-              onclick={() => (pose = choice.position)}
+              onclick={() => (chart.pose = choice.position)}
             >
               <AvatarFigure
                 avatar={sample}
@@ -140,12 +140,12 @@
     <label class="flex items-center gap-2 text-lg text-slate-700">
       <input
         type="checkbox"
-        bind:checked={sameFace}
+        bind:checked={chart.sameFace}
         class="h-5 w-5 accent-sky-600"
       />
       Give everyone the same face
     </label>
-    {#if sameFace}
+    {#if chart.sameFace}
       <ul
         class="grid grid-cols-4 gap-2 sm:grid-cols-8"
         aria-label="One face for everyone"
@@ -154,12 +154,12 @@
           <li>
             <button
               type="button"
-              aria-pressed={chosenFace === choice.position}
-              class="w-full rounded-2xl bg-white p-1 ring-2 {chosenFace ===
+              aria-pressed={chart.face === choice.position}
+              class="w-full rounded-2xl bg-white p-1 ring-2 {chart.face ===
               choice.position
                 ? 'ring-sky-600'
                 : 'ring-slate-200 hover:ring-slate-400'}"
-              onclick={() => (chosenFace = choice.position)}
+              onclick={() => (chart.face = choice.position)}
             >
               <AvatarFigure
                 avatar={sample}
@@ -176,12 +176,12 @@
     <label class="flex items-center gap-2 text-lg text-slate-700">
       <input
         type="checkbox"
-        bind:checked={sameClothes}
+        bind:checked={chart.sameClothes}
         class="h-5 w-5 accent-sky-600"
       />
       Give everyone the same clothes color
     </label>
-    {#if sameClothes}
+    {#if chart.sameClothes}
       <ul
         class="grid grid-cols-5 gap-2 sm:grid-cols-10"
         aria-label="One clothes color for everyone"
@@ -190,12 +190,12 @@
           <li>
             <button
               type="button"
-              aria-pressed={chosenClothes === choice.position}
-              class="w-full rounded-2xl bg-white p-1 ring-2 {chosenClothes ===
+              aria-pressed={chart.clothes === choice.position}
+              class="w-full rounded-2xl bg-white p-1 ring-2 {chart.clothes ===
               choice.position
                 ? 'ring-sky-600'
                 : 'ring-slate-200 hover:ring-slate-400'}"
-              onclick={() => (chosenClothes = choice.position)}
+              onclick={() => (chart.clothes = choice.position)}
             >
               <span
                 class="block aspect-square w-full rounded-xl ring-1 ring-slate-200"
@@ -211,7 +211,7 @@
     <label class="flex items-center gap-2 text-lg text-slate-700">
       <input
         type="checkbox"
-        bind:checked={withNames}
+        bind:checked={chart.withNames}
         class="h-5 w-5 accent-sky-600"
       />
       Put names under the pictures
@@ -220,7 +220,7 @@
     <label class="flex items-center gap-2 text-lg text-slate-700">
       <input
         type="checkbox"
-        bind:checked={includeMe}
+        bind:checked={chart.includeMe}
         disabled={!mine}
         class="h-5 w-5 accent-sky-600 disabled:opacity-40"
       />
@@ -240,14 +240,14 @@
         <div class="flex w-24 flex-col items-center rounded-2xl bg-sky-50 p-2">
           <AvatarFigure
             avatar={student.avatar}
-            {framing}
-            {pose}
+            framing={chart.framing}
+            pose={chart.pose}
             {expression}
             {clothingColor}
             title="{student.name}'s chart piece"
             class="h-auto w-full"
           />
-          {#if withNames}
+          {#if chart.withNames}
             <span class="font-semibold text-slate-800">{student.name}</span>
           {/if}
         </div>
@@ -256,6 +256,16 @@
         <p class="self-center text-slate-600">and {everyone.length - 6} more</p>
       {/if}
     </div>
+  </div>
+
+  <div aria-live="polite">
+    {#if trouble}
+      <p
+        class="rounded-2xl bg-amber-100 px-4 py-3 text-amber-900 ring-1 ring-amber-300"
+      >
+        {trouble}
+      </p>
+    {/if}
   </div>
 
   <button

@@ -131,10 +131,12 @@
       return;
     }
 
-    finished = made;
     rememberAvatar(made);
     try {
       await save(made);
+      // Only now: "Nice work, your picture is in your downloads" sitting above
+      // "your browser couldn't save the picture" would be a lie either way.
+      finished = made;
     } catch {
       message = "Your browser couldn't save the picture. Try again.";
     }

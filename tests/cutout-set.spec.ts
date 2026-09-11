@@ -178,3 +178,60 @@ test("a Cutout out of a downloaded set imports like any other", async ({
     page.getByRole("listitem").filter({ hasText: "Ava" }),
   ).toHaveCount(2);
 });
+
+test('a child whose name really is "Maya 2" still gets a file of their own', async ({
+  page,
+}) => {
+  await page.goto("/");
+  await importCutouts(
+    page,
+    "cutout-maya.png",
+    "cutout-maya.png",
+    "cutout-maya.png",
+  );
+
+  await page
+    .getByRole("list", { name: "Students" })
+    .getByRole("listitem")
+    .last()
+    .getByRole("button", { name: "Rename" })
+    .click();
+  await page.getByLabel("New name for Maya").fill("Maya 2");
+  await page.getByRole("button", { name: "Save name" }).click();
+
+  // Three children, three files: nobody is missing from the printed chart.
+  const { entries } = await downloadSet(page);
+  expect(Object.keys(entries).sort()).toEqual([
+    "Maya 2 2.png",
+    "Maya 2.png",
+    "Maya.png",
+  ]);
+});
+
+test("one replacement piece matches the set it belongs to", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await importCutouts(page, "cutout-leo.png");
+
+  await page.getByRole("button", { name: "Head and shoulders" }).click();
+  await page
+    .getByRole("list", { name: "Pick a pose for everyone" })
+    .getByRole("button", { name: "Hoodie", exact: true })
+    .click();
+  await page.getByLabel("Put names under the pictures").uncheck();
+
+  const saving = page.waitForEvent("download");
+  await page
+    .getByRole("list", { name: "Students" })
+    .getByRole("listitem")
+    .filter({ hasText: "Leo" })
+    .getByRole("button", { name: "Download" })
+    .click();
+  const bytes = new Uint8Array(await readFile((await (await saving).path())!));
+
+  // Head and shoulders with no name under it, like the rest of that chart.
+  const shape = pictureShape(bytes);
+  expect(shape.height).toBe(1500);
+  expect(shape.width).toBeGreaterThan(1300);
+});

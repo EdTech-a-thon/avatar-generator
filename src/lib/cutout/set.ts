@@ -24,14 +24,23 @@ export interface CutoutSetOptions {
   label: boolean;
 }
 
-/** "Maya", then "Maya 2": two children with one name still get one file each. */
+/**
+ * "Maya", then "Maya 2": two children with one name still get one file each.
+ *
+ * It counts up until the name is free rather than counting how many Mayas it
+ * has seen, because a Class can hold a Maya, another Maya, and a child whose
+ * Display Name really is "Maya 2". Two entries with one name would mean a child
+ * silently missing from the printed chart.
+ */
 export function entryNames(students: Student[]): string[] {
-  const used = new Map<string, number>();
+  const used = new Set<string>();
   return students.map((student) => {
     const name = tidyName(student.name) || "avatar";
-    const seen = (used.get(name) ?? 0) + 1;
-    used.set(name, seen);
-    return seen === 1 ? `${name}.png` : `${name} ${seen}.png`;
+    let entry = `${name}.png`;
+    for (let seen = 2; used.has(entry); seen += 1)
+      entry = `${name} ${seen}.png`;
+    used.add(entry);
+    return entry;
   });
 }
 

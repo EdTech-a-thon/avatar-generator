@@ -54,7 +54,14 @@ function freshClass(name = "My class"): Classroom {
 export function settleClassroomData(value: unknown): ClassroomData | undefined {
   if (typeof value !== "object" || value === null) return undefined;
   const held = value as Record<string, unknown>;
-  if (held.version !== CLASSROOM_VERSION || !Array.isArray(held.classes))
+  // A file from an older version still loads: the lists only grow (ADR 0010),
+  // so its positions still mean what they meant. A file from a version that
+  // doesn't exist yet is the one we can't promise anything about.
+  if (
+    typeof held.version !== "number" ||
+    held.version > CLASSROOM_VERSION ||
+    !Array.isArray(held.classes)
+  )
     return undefined;
   return {
     version: CLASSROOM_VERSION,
@@ -176,7 +183,14 @@ export function replaceWithDuplicate(classId: string, studentId: string) {
   const first = room?.students.find(
     (student) => student.id === arrived?.duplicateOf,
   );
-  if (!room || !arrived || !first) return;
+  if (!room || !arrived) return;
+  if (!first) {
+    // The Student this marker pointed at is gone, so there is nothing to
+    // replace. Clear it rather than leaving a button that does nothing.
+    delete arrived.duplicateOf;
+    save();
+    return;
+  }
   first.avatar = arrived.avatar;
   room.students = room.students.filter((student) => student.id !== arrived.id);
   save();
@@ -222,6 +236,11 @@ export function removeStudent(classId: string, studentId: string) {
   const room = data.classes.find((group) => group.id === classId);
   if (!room) return;
   room.students = room.students.filter((student) => student.id !== studentId);
+  // A marker pointing at the Student who just left would offer to replace
+  // somebody who isn't there any more, so it goes with them.
+  for (const student of room.students) {
+    if (student.duplicateOf === studentId) delete student.duplicateOf;
+  }
   save();
 }
 

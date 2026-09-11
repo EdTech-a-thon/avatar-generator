@@ -109,3 +109,24 @@ test("a name that differs in capitalization is a different child", async ({
   await expect(page.getByRole("listitem")).toHaveCount(2);
   await expect(page.getByText("There's already a")).toHaveCount(0);
 });
+
+test("removing the Student a marker points at takes the marker with it", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await importCutout(page, "cutout-maya.png");
+  await importCutout(page, "cutout-maya.png");
+  await expect(marker(page)).toHaveCount(1);
+
+  // The first Maya is the one the marker offers to replace.
+  await page
+    .getByRole("list", { name: "Students" })
+    .getByRole("listitem")
+    .first()
+    .getByRole("button", { name: "Remove" })
+    .click();
+  await page.getByRole("button", { name: "Yes, remove" }).click();
+
+  await expect(page.getByRole("img", { name: "Maya's avatar" })).toHaveCount(1);
+  await expect(marker(page)).toHaveCount(0);
+});

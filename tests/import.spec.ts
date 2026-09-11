@@ -97,3 +97,34 @@ test("imported Students are still there after a reload", async ({ page }) => {
     page.getByRole("listitem").filter({ hasText: "Ava" }),
   ).toHaveCount(1);
 });
+
+test("a second drop keeps the child still waiting for a name", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await drop(page, "no-name-cutout.png");
+  const asking = page.getByLabel("This picture has no name inside. Who is it?");
+  await expect(asking).toBeVisible();
+
+  // The Teacher drops more pictures before answering.
+  await drop(page, "cutout-leo.png");
+  await expect(asking).toBeVisible();
+
+  await asking.fill("Sam");
+  await page.getByRole("button", { name: "Add this student" }).click();
+  await expect(
+    page.getByRole("listitem").filter({ hasText: "Sam" }),
+  ).toHaveCount(1);
+  await expect(
+    page.getByRole("listitem").filter({ hasText: "Leo" }),
+  ).toHaveCount(1);
+});
+
+test("a class file dropped on the Class says where it belongs", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await drop(page, "golden-class-file.json");
+  await expect(page.getByText("That looks like a class file.")).toBeVisible();
+  await expect(page.getByRole("listitem")).toHaveCount(0);
+});

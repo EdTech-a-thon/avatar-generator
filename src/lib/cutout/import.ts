@@ -31,11 +31,28 @@ export interface ImportReading {
 export async function readCutoutFiles(files: File[]): Promise<ImportReading> {
   const reading: ImportReading = { named: [], unnamed: [], problems: [] };
   for (const file of files) {
-    const outcome = readCutout(new Uint8Array(await file.arrayBuffer()));
+    // Reading can fail on its own, on a dropped folder or a file that has
+    // moved. That is one more file with a problem, not a failed import.
+    let bytes: Uint8Array;
+    try {
+      bytes = new Uint8Array(await file.arrayBuffer());
+    } catch {
+      reading.problems.push({
+        fileName: file.name,
+        message: "That file couldn't be read.",
+      });
+      continue;
+    }
+
+    const outcome = readCutout(bytes);
     if (outcome.kind !== "cutout") {
       reading.problems.push({
         fileName: file.name,
-        message: cutoutProblem(outcome)!,
+        // Dropping a class file on the Class is a reasonable mistake to make,
+        // since the page offers to load one a little further down.
+        message: file.name.toLowerCase().endsWith(".json")
+          ? "That looks like a class file. Use “Load a class file” lower down the page."
+          : cutoutProblem(outcome)!,
       });
       continue;
     }

@@ -38,6 +38,11 @@
   } from "$lib/cutout/import";
   import type { Student } from "$lib/classroom.svelte";
   import ChartPieces from "$lib/ChartPieces.svelte";
+  import {
+    chart,
+    chartClothingColor,
+    chartExpression,
+  } from "$lib/chart.svelte";
   import ClassFile from "$lib/ClassFile.svelte";
   import {
     cutoutFileName,
@@ -81,7 +86,13 @@
 
   async function importFiles(files: FileList | null | undefined) {
     if (!files || files.length === 0) return;
-    const reading = await readCutoutFiles([...files]);
+    let reading;
+    try {
+      reading = await readCutoutFiles([...files]);
+    } catch {
+      problems = [{ fileName: "Those files", message: "couldn't be read." }];
+      return;
+    }
 
     for (const found of reading.named) addStudent(room.id, found);
     added =
@@ -89,8 +100,9 @@
         ? `Added ${nameList(reading.named.map((one) => one.name))}.`
         : "";
     problems = reading.problems;
-    waiting = reading.unnamed;
-    typedName = "";
+    // Anyone still waiting for a name keeps waiting: a second drop must never
+    // quietly throw away the children the Teacher hasn't named yet.
+    waiting = [...waiting, ...reading.unnamed];
   }
 
   function nameTheWaitingOne(event: SubmitEvent) {
@@ -116,16 +128,29 @@
     renaming = undefined;
   }
 
-  /** One lost chart piece, made again the same way the whole set is. */
+  /**
+   * One lost chart piece, made the same way the whole set is: same framing,
+   * same Pose, same overrides, same names. A replacement that didn't match the
+   * rest of the chart would be no replacement at all.
+   */
   async function downloadOne(student: Student) {
-    const picture = await cutoutPng({
-      avatar: student.avatar,
-      framing: "head",
-      height: SET_CUTOUT_HEIGHT,
-      label: student.name,
-      data: { avatar: student.avatar, name: student.name },
-    });
-    download(picture, cutoutFileName(student.name));
+    try {
+      const picture = await cutoutPng({
+        avatar: student.avatar,
+        framing: chart.framing,
+        pose: chart.pose,
+        expression: chartExpression(),
+        clothingColor: chartClothingColor(),
+        height: SET_CUTOUT_HEIGHT,
+        ...(chart.withNames ? { label: student.name } : {}),
+        data: { avatar: student.avatar, name: student.name },
+      });
+      download(picture, cutoutFileName(student.name));
+    } catch {
+      problems = [
+        { fileName: student.name, message: "couldn't be made. Try again." },
+      ];
+    }
   }
 </script>
 
@@ -212,7 +237,8 @@
         {added}
       </p>
     {/if}
-    {#each problems as problem (problem.fileName)}
+    <!-- Keyed by position: two dropped files really can share a name. -->
+    {#each problems as problem, index (index)}
       <p
         class="rounded-2xl bg-amber-100 px-4 py-3 text-lg text-amber-900 ring-1 ring-amber-300"
       >
