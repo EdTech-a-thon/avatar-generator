@@ -6,3 +6,6 @@ playwright-report
 src/lib/art/generated
 tests/fixtures
 bun.lock
+
+# The spec and tickets are the tracker's, not the formatter's.
+.scratch

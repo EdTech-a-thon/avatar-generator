@@ -54,7 +54,9 @@ test("a Student builds an Avatar by picking pictures, and the preview keeps up",
   await step(page, "Name").click();
   await expect(page.getByLabel("What's your first name?")).toBeVisible();
   await page.getByLabel("What's your first name?").fill("Maya");
-  await expect(page.getByRole("button", { name: "I'm done" })).toBeEnabled();
+  await expect(
+    page.getByRole("button", { name: "Save my picture" }),
+  ).toBeEnabled();
 });
 
 test("the steps run in order from the first screen to the name question", async ({
@@ -127,8 +129,10 @@ test("a Student can finish with the keyboard alone", async ({ page }) => {
   await page.keyboard.press("Enter");
   await page.getByLabel("What's your first name?").focus();
   await page.keyboard.type("Ava");
-  await page.getByRole("button", { name: "I'm done" }).focus();
+  await page.getByRole("button", { name: "Save my picture" }).focus();
+  const saving = page.waitForEvent("download");
   await page.keyboard.press("Enter");
+  await saving;
 
   await expect(
     page.getByRole("heading", { name: "Nice work, Ava!" }),

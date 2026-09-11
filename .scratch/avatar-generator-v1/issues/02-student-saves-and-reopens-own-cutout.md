@@ -4,15 +4,20 @@
 
 **Blocked by:** 01 — The Builder shows a live Avatar
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] Finishing the standalone Builder downloads a PNG with a transparent background: head-only, favorite Expression, no visible name, under 2000px on its longest side.
-- [ ] The PNG carries hidden data in a UTF-8 text section under the app's keyword: a format version (1), the Avatar's six positions, and the name. The pixels match the image without the data.
-- [ ] Names with accented characters (for example "José") survive a save and reload.
-- [ ] The last Avatar built on a device is restored when the standalone Builder is opened again.
-- [ ] Dropping a Cutout onto the standalone Builder reopens it with the same choices selected and the name filled in.
-- [ ] Reading a dropped file reports one of three outcomes: a valid Avatar (with or without a name), not a PNG, or a PNG with no Avatar data. The Builder shows a friendly message for the last two.
-- [ ] An out-of-range position falls back to that list's default. A retired position still loads.
-- [ ] A golden Cutout fixture produced by this ticket is checked in. A test loads it and checks the exact choices shown.
-- [ ] Negative fixtures are checked in and tested: the same Cutout re-saved without hidden data, a non-PNG file, and a Cutout with out-of-range positions.
-- [ ] End-to-end tests read the hidden data straight from the downloaded PNG and check its dimensions and transparent background.
+- [x] Finishing the standalone Builder downloads a PNG with a transparent background: head-only, favorite Expression, no visible name, under 2000px on its longest side.
+- [x] The PNG carries hidden data in a UTF-8 text section under the app's keyword: a format version (1), the Avatar's six positions, and the name. The pixels match the image without the data.
+- [x] Names with accented characters (for example "José") survive a save and reload.
+- [x] The last Avatar built on a device is restored when the standalone Builder is opened again.
+- [x] Dropping a Cutout onto the standalone Builder reopens it with the same choices selected and the name filled in.
+- [x] Reading a dropped file reports one of three outcomes: a valid Avatar (with or without a name), not a PNG, or a PNG with no Avatar data. The Builder shows a friendly message for the last two.
+- [x] An out-of-range position falls back to that list's default. A retired position still loads.
+- [x] A golden Cutout fixture produced by this ticket is checked in. A test loads it and checks the exact choices shown.
+- [x] Negative fixtures are checked in and tested: the same Cutout re-saved without hidden data, a non-PNG file, and a Cutout with out-of-range positions.
+- [x] End-to-end tests read the hidden data straight from the downloaded PNG and check its dimensions and transparent background.
+
+## Comments
+
+- No part is retired in v1, so "a retired position still loads" is only carried by the code: `entryAt` ignores the flag and renders any position that is a real slot, while `choices` hides retired ones from the Builder. The first retirement should come with a test.
+- The Cutout keyword inside the PNG is `AvatarGenerator`, and the hidden text is JSON: `{"version":1,"skinTone":…,"name":"José"}`. Files are already in the wild the moment this ships, so that shape is now fixed (ADR 0009).

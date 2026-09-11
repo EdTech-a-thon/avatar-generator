@@ -12,7 +12,8 @@
     "format": "prettier --write .",
     "test": "playwright test",
     "art": "bun scripts/generate-art.ts",
-    "framing": "bun scripts/measure-framing.ts"
+    "framing": "bun scripts/measure-framing.ts",
+    "fixtures": "bun scripts/make-fixtures.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
