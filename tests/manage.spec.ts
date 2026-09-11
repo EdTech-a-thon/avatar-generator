@@ -31,9 +31,9 @@ test("a Teacher tidies up a Display Name, and it stays tidied", async ({
   await page.getByLabel("New name for Maya").fill("Maya R.");
   await page.getByRole("button", { name: "Save name" }).click();
 
-  await expect(page.getByText("Maya R.")).toBeVisible();
+  await expect(card(page, "Maya R.")).toHaveCount(1);
   await page.reload();
-  await expect(page.getByText("Maya R.")).toBeVisible();
+  await expect(card(page, "Maya R.")).toHaveCount(1);
 });
 
 test("a Teacher changes a Student's Avatar and keeps their name", async ({

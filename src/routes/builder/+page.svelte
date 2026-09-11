@@ -265,4 +265,9 @@
       </div>
     {/if}
   {/if}
+  <footer class="mx-auto max-w-5xl px-4 pb-8">
+    <a class="text-sky-700 underline" href={resolve("/privacy")}>
+      Privacy: what this app keeps
+    </a>
+  </footer>
 </main>

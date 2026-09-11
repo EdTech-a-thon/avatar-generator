@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "classes": [
+    {
+      "id": "7612e01c-3763-45a2-a715-35ece8c13b67",
+      "name": "My class",
+      "students": [
+        {
+          "id": "b1c73a52-873e-404a-b49e-4f1d85a0e92f",
+          "name": "Maya",
+          "avatar": {
+            "skinTone": 2,
+            "hairstyle": 999,
+            "hairColor": 2,
+            "eyewear": 0,
+            "expression": -3,
+            "clothingColor": 6
+          }
+        },
+        {
+          "id": "2bb7b949-53ac-4ab9-9fa7-2ca79f94a852",
+          "name": "Leo",
+          "avatar": {
+            "skinTone": 5,
+            "hairstyle": 30,
+            "hairColor": 0,
+            "eyewear": 1,
+            "expression": 9,
+            "clothingColor": 5
+          }
+        }
+      ]
+    }
+  ],
+  "teacherAvatar": {
+    "skinTone": 4,
+    "hairstyle": 7,
+    "hairColor": 0,
+    "eyewear": 0,
+    "expression": 0,
+    "clothingColor": 0
+  }
+}

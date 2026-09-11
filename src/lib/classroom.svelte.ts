@@ -279,3 +279,43 @@ export function setTeacherAvatar(avatar: Avatar) {
   data.teacherAvatar = avatar;
   save();
 }
+
+// --- Class Files ------------------------------------------------------------
+// The only copy of a Teacher's work outside this browser, and the only way to
+// move it to another one (ADR 0008). It holds the same positions a Cutout does,
+// so it is read back just as forgivingly.
+
+/** Everything worth keeping. Which Class this tab is showing is not in it. */
+export function classroomFile(): ClassroomData {
+  return $state.snapshot(data) as ClassroomData;
+}
+
+export function readClassroomFile(text: string): ClassroomData | undefined {
+  try {
+    return settleClassroomData(JSON.parse(text));
+  } catch {
+    return undefined;
+  }
+}
+
+/** Replaces everything in this browser. The Teacher is asked first. */
+export function loadClassroomFile(file: ClassroomData) {
+  data = file;
+  if (data.classes.length === 0) data.classes.push(freshClass());
+  save();
+  selectClass(data.classes[0].id);
+}
+
+/** "2 classes, 31 students, and your own avatar" — what a load would replace. */
+export function describe(file: ClassroomData): string {
+  const rooms = file.classes.length;
+  const students = file.classes.reduce(
+    (total, room) => total + room.students.length,
+    0,
+  );
+  const parts = [
+    `${rooms} ${rooms === 1 ? "class" : "classes"}`,
+    `${students} ${students === 1 ? "student" : "students"}`,
+  ];
+  return `${parts.join(", ")}${file.teacherAvatar ? ", and your own avatar" : ""}`;
+}

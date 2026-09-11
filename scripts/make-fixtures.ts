@@ -119,7 +119,6 @@ try {
       "Yellow clothes",
     ]),
   };
-  await browser.close();
 
   await writeFile(path.join(fixtures, "golden-cutout.png"), golden);
   for (const [name, bytes] of Object.entries(classroom)) {
@@ -145,6 +144,36 @@ try {
     path.join(fixtures, "not-a-cutout.txt"),
     "This is a note, not a picture of anybody.\n",
   );
+
+  // A Class File saved by this version: two Students and the Teacher's own
+  // Avatar. Later versions have to keep loading it exactly as it is (ADR 0010).
+  await page.goto(`http://127.0.0.1:${PORT}/`);
+  await page
+    .getByLabel("Add pictures students turned in")
+    .setInputFiles([
+      path.join(fixtures, "cutout-maya.png"),
+      path.join(fixtures, "cutout-leo.png"),
+    ]);
+  await page.getByRole("button", { name: "Make my avatar" }).click();
+  await page.getByRole("button", { name: "Hair", exact: true }).click();
+  await page.getByRole("button", { name: "Bun", exact: true }).click();
+  await page.getByRole("button", { name: "Save my avatar" }).click();
+
+  const savingFile = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Download class file" }).click();
+  const classFile = await readFile((await (await savingFile).path())!, "utf8");
+  await browser.close();
+
+  await writeFile(path.join(fixtures, "golden-class-file.json"), classFile);
+
+  const held = JSON.parse(classFile);
+  held.classes[0].students[0].avatar.hairstyle = 999;
+  held.classes[0].students[0].avatar.expression = -3;
+  await writeFile(
+    path.join(fixtures, "class-file-out-of-range.json"),
+    JSON.stringify(held, null, 2),
+  );
+
   console.log("wrote the fixtures");
 } finally {
   server.kill();

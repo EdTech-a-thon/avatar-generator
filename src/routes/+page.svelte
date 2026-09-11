@@ -37,13 +37,14 @@
     type ReadFromFile,
   } from "$lib/cutout/import";
   import type { Student } from "$lib/classroom.svelte";
+  import ChartPieces from "$lib/ChartPieces.svelte";
+  import ClassFile from "$lib/ClassFile.svelte";
   import {
     cutoutFileName,
     cutoutPng,
     download,
     SET_CUTOUT_HEIGHT,
   } from "$lib/cutout/save";
-  import { cutoutSetFileName, cutoutSetZip } from "$lib/cutout/set";
 
   const room = $derived(currentClass());
   const mine = $derived(teacherAvatar());
@@ -115,32 +116,13 @@
     renaming = undefined;
   }
 
-  /** Names under the pictures is what most charts want, so it starts on. */
-  let withNames = $state(true);
-  let busy = $state(false);
-
-  async function downloadSet() {
-    busy = true;
-    try {
-      const zip = await cutoutSetZip({
-        className: room.name,
-        students: room.students,
-        framing: "head",
-        label: withNames,
-      });
-      download(zip, cutoutSetFileName(room.name));
-    } finally {
-      busy = false;
-    }
-  }
-
   /** One lost chart piece, made again the same way the whole set is. */
   async function downloadOne(student: Student) {
     const picture = await cutoutPng({
       avatar: student.avatar,
       framing: "head",
       height: SET_CUTOUT_HEIGHT,
-      ...(withNames ? { label: student.name } : {}),
+      label: student.name,
       data: { avatar: student.avatar, name: student.name },
     });
     download(picture, cutoutFileName(student.name));
@@ -411,33 +393,7 @@
   {/if}
 
   {#if room && room.students.length > 0}
-    <section
-      aria-label="Chart pieces"
-      class="flex flex-col items-start gap-3 rounded-3xl bg-white p-4 ring-1 ring-slate-200"
-    >
-      <h2 class="text-xl font-semibold text-slate-900">Chart pieces</h2>
-      <p class="text-slate-600">
-        One picture per student, on a see-through background, big enough to
-        print and laminate. Every picture carries its avatar, so this set is
-        also a way to get your class back.
-      </p>
-      <label class="flex items-center gap-2 text-lg text-slate-700">
-        <input
-          type="checkbox"
-          bind:checked={withNames}
-          class="h-5 w-5 accent-sky-600"
-        />
-        Put names under the pictures
-      </label>
-      <button
-        type="button"
-        disabled={busy}
-        class="rounded-2xl bg-sky-600 px-6 py-3 text-lg font-semibold text-white hover:bg-sky-700 disabled:opacity-40"
-        onclick={downloadSet}
-      >
-        Download all cutouts
-      </button>
-    </section>
+    <ChartPieces {room} />
   {/if}
 
   <details class="rounded-3xl bg-white p-4 ring-1 ring-slate-200">
@@ -559,7 +515,12 @@
     </div>
   </details>
 
-  <footer class="text-slate-600">
+  <ClassFile />
+
+  <footer class="flex flex-wrap items-center gap-4 text-slate-600">
+    <a class="text-sky-700 underline" href={resolve("/privacy")}>
+      Privacy: what this app keeps
+    </a>
     Making an avatar on your own device?
     <a class="text-sky-700 underline" href={resolve("/builder")}
       >Open the builder</a
