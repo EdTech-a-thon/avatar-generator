@@ -521,9 +521,11 @@
     <a class="text-sky-700 underline" href={resolve("/privacy")}>
       Privacy: what this app keeps
     </a>
-    Making an avatar on your own device?
-    <a class="text-sky-700 underline" href={resolve("/builder")}
-      >Open the builder</a
-    >.
+    <span>
+      Making an avatar on your own device?
+      <a class="text-sky-700 underline" href={resolve("/builder")}
+        >Open the builder</a
+      >.
+    </span>
   </footer>
 </main>
