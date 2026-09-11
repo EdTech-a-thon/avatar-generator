@@ -229,7 +229,11 @@
           >
             Next
           </button>
-        {:else}
+        {/if}
+        <!-- A child works through to the name question, which is what finishes
+             their Avatar. A Teacher changing one glasses choice shouldn't have
+             to click to the end, so with no name to ask, saving is always here. -->
+        {#if !askName || stepNumber === lastStep}
           <button
             type="button"
             class="rounded-2xl bg-emerald-600 px-6 py-3 text-lg font-semibold text-white hover:bg-emerald-700 disabled:opacity-40"

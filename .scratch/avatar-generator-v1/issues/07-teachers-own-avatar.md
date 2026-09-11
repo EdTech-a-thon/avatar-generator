@@ -4,11 +4,11 @@
 
 **Blocked by:** 03 — A Class fills up from "Add a student" tabs
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] The app offers a way to build "my Avatar" that opens the Builder without the name step.
-- [ ] Finishing saves the Teacher's Avatar separately from any Class. It never appears as a Student.
-- [ ] The Teacher's Avatar appears somewhere visible in the app, and reopening it shows its current choices.
-- [ ] Deleting or switching Classes doesn't affect the Teacher's Avatar.
-- [ ] The Teacher's Avatar persists across a reload.
-- [ ] End-to-end tests cover creating, reopening, changing and reloading the Teacher's Avatar, and check that it never shows up in a Class's Student list.
+- [x] The app offers a way to build "my Avatar" that opens the Builder without the name step.
+- [x] Finishing saves the Teacher's Avatar separately from any Class. It never appears as a Student.
+- [x] The Teacher's Avatar appears somewhere visible in the app, and reopening it shows its current choices.
+- [x] Deleting or switching Classes doesn't affect the Teacher's Avatar.
+- [x] The Teacher's Avatar persists across a reload.
+- [x] End-to-end tests cover creating, reopening, changing and reloading the Teacher's Avatar, and check that it never shows up in a Class's Student list.

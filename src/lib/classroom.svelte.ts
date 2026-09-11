@@ -198,3 +198,84 @@ export function studentById(
 ): Student | undefined {
   return room.students.find((student) => student.id === studentId);
 }
+
+function findStudent(classId: string, studentId: string) {
+  return data.classes
+    .find((room) => room.id === classId)
+    ?.students.find((student) => student.id === studentId);
+}
+
+/** "MAYA!!!" becomes "Maya R.". The Avatar and everything else stay put. */
+export function renameStudent(
+  classId: string,
+  studentId: string,
+  name: string,
+) {
+  const student = findStudent(classId, studentId);
+  if (!student || !name.trim()) return;
+  student.name = name.trim();
+  save();
+}
+
+/** Gone for good: a child who moved away leaves nothing behind. */
+export function removeStudent(classId: string, studentId: string) {
+  const room = data.classes.find((group) => group.id === classId);
+  if (!room) return;
+  room.students = room.students.filter((student) => student.id !== studentId);
+  save();
+}
+
+/** A Student got glasses. Their Display Name is not touched. */
+export function setStudentAvatar(
+  classId: string,
+  studentId: string,
+  avatar: Avatar,
+) {
+  const student = findStudent(classId, studentId);
+  if (!student) return;
+  student.avatar = avatar;
+  save();
+}
+
+export function addClass(name: string): Classroom {
+  const room = freshClass(name.trim() || "My class");
+  data.classes.push(room);
+  save();
+  selectClass(room.id);
+  return room;
+}
+
+export function renameClass(classId: string, name: string) {
+  const room = data.classes.find((group) => group.id === classId);
+  if (!room || !name.trim()) return;
+  room.name = name.trim();
+  save();
+}
+
+/** Takes the Class and every Student in it. A Teacher is always left one. */
+export function removeClass(classId: string) {
+  data.classes = data.classes.filter((room) => room.id !== classId);
+  if (data.classes.length === 0) data.classes.push(freshClass());
+  save();
+  if (chosenClassId === classId) selectClass(data.classes[0].id);
+}
+
+/** Which Class this tab is looking at. Other tabs follow along. */
+export function selectClass(classId: string) {
+  chosenClassId = classId;
+  try {
+    localStorage.setItem(CURRENT_KEY, classId);
+  } catch {
+    // The Class shown just won't be remembered for next time.
+  }
+}
+
+/** The Teacher's own Avatar, kept outside every Class so it isn't rebuilt. */
+export function teacherAvatar(): Avatar | undefined {
+  return data.teacherAvatar;
+}
+
+export function setTeacherAvatar(avatar: Avatar) {
+  data.teacherAvatar = avatar;
+  save();
+}

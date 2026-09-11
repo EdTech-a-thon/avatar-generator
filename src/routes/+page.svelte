@@ -7,15 +7,28 @@
    * ways and both land here — "Add a student" hands the laptop to a child for a
    * minute, and dropping in the pictures a class turned in brings in a whole
    * set at once.
+   *
+   * Tidying up lives on each Student's own card, and the Classes panel stays
+   * folded away, because a Teacher with one Class should never have to think
+   * about Classes at all.
    */
+  import { goto } from "$app/navigation";
   import { resolve } from "$app/paths";
   import AvatarFigure from "$lib/AvatarFigure.svelte";
   import {
+    addClass,
     addStudent,
+    classes,
     currentClass,
     keepDuplicate,
+    removeClass,
+    removeStudent,
+    renameClass,
+    renameStudent,
     replaceWithDuplicate,
+    selectClass,
     studentById,
+    teacherAvatar,
   } from "$lib/classroom.svelte";
   import {
     nameList,
@@ -25,6 +38,7 @@
   } from "$lib/cutout/import";
 
   const room = $derived(currentClass());
+  const mine = $derived(teacherAvatar());
 
   let added = $state("");
   let problems = $state<ImportProblem[]>([]);
@@ -33,8 +47,27 @@
   let typedName = $state("");
   let dropping = $state(false);
 
-  function openBuilderTab() {
-    window.open(`${resolve("/builder")}?class=${room.id}`, "_blank");
+  /** Which Student's card is open for renaming, and which is asking to go. */
+  let renaming = $state<string | undefined>(undefined);
+  let newName = $state("");
+  let removing = $state<string | undefined>(undefined);
+
+  let newClassName = $state("");
+  let classNameEdit = $state("");
+  let removingClass = $state(false);
+
+  function builderTab(query: string) {
+    window.open(`${resolve("/builder")}?${query}`, "_blank");
+  }
+
+  /**
+   * Which Avatar the Builder is for rides in the query string. `resolve` still
+   * gives us the app's base path; the lint rule just can't see it through the
+   * template, which is why it is waved off here and nowhere else.
+   */
+  function openBuilder(query: string) {
+    // eslint-disable-next-line svelte/no-navigation-without-resolve
+    goto(`${resolve("/builder")}?${query}`);
   }
 
   async function importFiles(files: FileList | null | undefined) {
@@ -60,6 +93,19 @@
     waiting = waiting.slice(1);
     typedName = "";
   }
+
+  function startRenaming(studentId: string, name: string) {
+    renaming = studentId;
+    removing = undefined;
+    newName = name;
+  }
+
+  function saveName(event: SubmitEvent) {
+    event.preventDefault();
+    if (!renaming) return;
+    renameStudent(room.id, renaming, newName);
+    renaming = undefined;
+  }
 </script>
 
 <svelte:window
@@ -80,21 +126,38 @@
     ? 'bg-sky-100'
     : ''}"
 >
-  <header class="flex flex-col gap-2">
-    <h1 class="text-3xl font-semibold text-slate-900">
-      {room?.name ?? "My class"}
-    </h1>
-    <p class="text-slate-600">
-      Everything here stays in this browser. No accounts, no photos, nothing on
-      a server.
-    </p>
+  <header class="flex flex-wrap items-center justify-between gap-4">
+    <div class="flex flex-col gap-2">
+      <h1 class="text-3xl font-semibold text-slate-900">
+        {room?.name ?? "My class"}
+      </h1>
+      <p class="text-slate-600">
+        Everything here stays in this browser. No accounts, no photos, nothing
+        on a server.
+      </p>
+    </div>
+
+    <section aria-label="My avatar" class="flex items-center gap-3">
+      {#if mine}
+        <div class="w-20 rounded-3xl bg-white p-2 ring-1 ring-slate-200">
+          <AvatarFigure avatar={mine} title="My avatar" class="h-auto w-full" />
+        </div>
+      {/if}
+      <button
+        type="button"
+        class="rounded-2xl bg-white px-4 py-3 font-semibold text-slate-700 ring-2 ring-slate-300 hover:ring-slate-400"
+        onclick={() => openBuilder("me=1")}
+      >
+        {mine ? "Change my avatar" : "Make my avatar"}
+      </button>
+    </section>
   </header>
 
   <div class="flex flex-wrap items-center gap-3">
     <button
       type="button"
       class="rounded-2xl bg-sky-600 px-6 py-3 text-lg font-semibold text-white hover:bg-sky-700"
-      onclick={openBuilderTab}
+      onclick={() => builderTab(`class=${room.id}`)}
     >
       Add a student
     </button>
@@ -143,9 +206,9 @@
       onsubmit={nameTheWaitingOne}
     >
       <h2 class="text-xl font-semibold text-slate-900">
-        <label for="waiting-name">
-          This picture has no name inside. Who is it?
-        </label>
+        <label for="waiting-name"
+          >This picture has no name inside. Who is it?</label
+        >
       </h2>
       <div class="flex flex-wrap items-center gap-4">
         <div class="w-28">
@@ -192,6 +255,77 @@
             >{student.name}</span
           >
 
+          {#if renaming === student.id}
+            <form class="flex w-full flex-col gap-2" onsubmit={saveName}>
+              <input
+                type="text"
+                aria-label="New name for {student.name}"
+                autocomplete="off"
+                bind:value={newName}
+                class="w-full rounded-xl border-2 border-slate-300 px-2 py-1 text-lg focus:border-sky-600 focus:outline-none"
+              />
+              <button
+                type="submit"
+                class="rounded-xl bg-sky-600 px-3 py-2 font-semibold text-white hover:bg-sky-700"
+              >
+                Save name
+              </button>
+            </form>
+          {:else if removing === student.id}
+            <div
+              class="flex w-full flex-col gap-2 rounded-2xl bg-amber-50 p-2 text-center"
+            >
+              <p class="text-amber-900">
+                Remove {student.name} and their avatar for good?
+              </p>
+              <button
+                type="button"
+                class="rounded-xl bg-rose-600 px-3 py-2 font-semibold text-white hover:bg-rose-700"
+                onclick={() => {
+                  removeStudent(room.id, student.id);
+                  removing = undefined;
+                }}
+              >
+                Yes, remove
+              </button>
+              <button
+                type="button"
+                class="rounded-xl bg-white px-3 py-2 font-semibold text-slate-700 ring-2 ring-slate-300"
+                onclick={() => (removing = undefined)}
+              >
+                Cancel
+              </button>
+            </div>
+          {:else}
+            <div class="flex flex-wrap justify-center gap-2">
+              <button
+                type="button"
+                class="rounded-xl bg-white px-3 py-1 font-semibold text-slate-700 ring-2 ring-slate-300"
+                onclick={() => startRenaming(student.id, student.name)}
+              >
+                Rename
+              </button>
+              <button
+                type="button"
+                class="rounded-xl bg-white px-3 py-1 font-semibold text-slate-700 ring-2 ring-slate-300"
+                onclick={() =>
+                  openBuilder(`class=${room.id}&student=${student.id}`)}
+              >
+                Change avatar
+              </button>
+              <button
+                type="button"
+                class="rounded-xl bg-white px-3 py-1 font-semibold text-slate-700 ring-2 ring-slate-300"
+                onclick={() => {
+                  removing = student.id;
+                  renaming = undefined;
+                }}
+              >
+                Remove
+              </button>
+            </div>
+          {/if}
+
           {#if student.duplicateOf}
             {@const first = studentById(room, student.duplicateOf)}
             <div
@@ -230,7 +364,126 @@
     </p>
   {/if}
 
-  <footer class="pt-4 text-slate-600">
+  <details class="rounded-3xl bg-white p-4 ring-1 ring-slate-200">
+    <summary class="cursor-pointer text-lg font-semibold text-slate-800"
+      >Classes</summary
+    >
+
+    <div class="flex flex-col gap-4 pt-4">
+      {#if classes().length > 1}
+        <ul class="flex flex-wrap gap-2" aria-label="My classes">
+          {#each classes() as group (group.id)}
+            <li>
+              <button
+                type="button"
+                aria-pressed={group.id === room.id}
+                class="rounded-full px-4 py-2 font-semibold ring-2 {group.id ===
+                room.id
+                  ? 'bg-slate-900 text-white ring-slate-900'
+                  : 'bg-white text-slate-700 ring-slate-300'}"
+                onclick={() => selectClass(group.id)}
+              >
+                {group.name}
+              </button>
+            </li>
+          {/each}
+        </ul>
+      {/if}
+
+      <form
+        class="flex flex-wrap items-end gap-2"
+        onsubmit={(event) => {
+          event.preventDefault();
+          renameClass(room.id, classNameEdit);
+          classNameEdit = "";
+        }}
+      >
+        <label class="flex flex-col gap-1 text-slate-700">
+          Rename this class
+          <input
+            type="text"
+            autocomplete="off"
+            bind:value={classNameEdit}
+            class="rounded-xl border-2 border-slate-300 px-3 py-2 text-lg focus:border-sky-600 focus:outline-none"
+          />
+        </label>
+        <button
+          type="submit"
+          class="rounded-xl bg-white px-4 py-2 font-semibold text-slate-700 ring-2 ring-slate-300"
+        >
+          Save class name
+        </button>
+      </form>
+
+      <form
+        class="flex flex-wrap items-end gap-2"
+        onsubmit={(event) => {
+          event.preventDefault();
+          if (!newClassName.trim()) return;
+          addClass(newClassName);
+          newClassName = "";
+        }}
+      >
+        <label class="flex flex-col gap-1 text-slate-700">
+          Name for a new class
+          <input
+            type="text"
+            autocomplete="off"
+            bind:value={newClassName}
+            class="rounded-xl border-2 border-slate-300 px-3 py-2 text-lg focus:border-sky-600 focus:outline-none"
+          />
+        </label>
+        <button
+          type="submit"
+          class="rounded-xl bg-white px-4 py-2 font-semibold text-slate-700 ring-2 ring-slate-300"
+        >
+          Add class
+        </button>
+      </form>
+
+      {#if removingClass}
+        <div
+          class="flex flex-col items-start gap-2 rounded-2xl bg-amber-50 p-3"
+        >
+          <p class="text-amber-900">
+            Delete {room.name} and its {room.students.length} student{room
+              .students.length === 1
+              ? ""
+              : "s"} for good?
+          </p>
+          <div class="flex gap-2">
+            <button
+              type="button"
+              class="rounded-xl bg-rose-600 px-4 py-2 font-semibold text-white hover:bg-rose-700"
+              onclick={() => {
+                removeClass(room.id);
+                removingClass = false;
+              }}
+            >
+              Yes, delete this class
+            </button>
+            <button
+              type="button"
+              class="rounded-xl bg-white px-4 py-2 font-semibold text-slate-700 ring-2 ring-slate-300"
+              onclick={() => (removingClass = false)}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      {:else}
+        <button
+          type="button"
+          class="self-start rounded-xl bg-white px-4 py-2 font-semibold text-slate-700 ring-2 ring-slate-300"
+          onclick={() => (removingClass = true)}
+        >
+          Delete this class
+        </button>
+      {/if}
+    </div>
+  </details>
+
+  <footer class="text-slate-600">
     Making an avatar on your own device?
     <a class="text-sky-700 underline" href={resolve("/builder")}
       >Open the builder</a
