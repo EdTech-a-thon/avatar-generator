@@ -1,5 +1,5 @@
 /**
- * An Avatar is six positions and nothing else: no Pose, no name and no photo.
+ * An Avatar is seven positions and nothing else: no Pose, no name and no photo.
  *
  * The positions point into the lists in `catalog.ts`. Anything that arrives
  * from outside the app — a Cutout made by an older version, a hand-edited Class
@@ -7,6 +7,7 @@
  * real slot with that list's default. One odd value never blocks an import.
  */
 import {
+  ages,
   clothingColors,
   expressions,
   eyewear,
@@ -18,6 +19,7 @@ import {
 } from "./catalog";
 
 export interface Avatar {
+  age: number;
   skinTone: number;
   hairstyle: number;
   hairColor: number;
@@ -27,6 +29,7 @@ export interface Avatar {
 }
 
 const lists: { [Part in keyof Avatar]: PartList<unknown> } = {
+  age: ages,
   skinTone: skinTones,
   hairstyle: hairstyles,
   hairColor: hairColors,
@@ -39,6 +42,7 @@ export const avatarParts = Object.keys(lists) as (keyof Avatar)[];
 
 export function defaultAvatar(): Avatar {
   return {
+    age: ages.fallback,
     skinTone: skinTones.fallback,
     hairstyle: hairstyles.fallback,
     hairColor: hairColors.fallback,

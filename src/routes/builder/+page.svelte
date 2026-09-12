@@ -178,7 +178,29 @@
 />
 
 <main class="min-h-dvh {dropping ? 'bg-sky-100' : ''}">
-  <div aria-live="polite" class="mx-auto max-w-3xl px-4 pt-4">
+  <header
+    class="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-4 sm:px-8"
+  >
+    <div class="min-w-0">
+      <h1 class="text-xl font-semibold text-slate-900 sm:text-2xl">
+        Make your avatar
+      </h1>
+      <p class="text-sm text-slate-600">
+        {mode === "me"
+          ? "Building your own avatar."
+          : mode === "student"
+            ? `Changing ${editing?.name}'s avatar.`
+            : room
+              ? `For ${room.name} · saved on this device`
+              : "Pick what looks like you. There’s no wrong choice."}
+      </p>
+    </div>
+    <a
+      class="shrink-0 rounded-xl bg-white px-3 py-3 text-sm font-semibold text-slate-700 ring-1 ring-slate-200"
+      href={resolve("/")}>{mode === "own" ? "For teachers" : "Back to class"}</a
+    >
+  </header>
+  <div aria-live="polite" class="mx-auto max-w-3xl px-4">
     {#if message}
       <p
         class="rounded-2xl bg-amber-100 px-4 py-3 text-lg text-amber-900 ring-1 ring-amber-300"
@@ -187,14 +209,6 @@
       </p>
     {/if}
   </div>
-
-  {#if mode === "student" || mode === "me"}
-    <p class="mx-auto max-w-5xl px-4 pt-2 text-lg text-slate-600">
-      {mode === "me"
-        ? "Building your own avatar."
-        : `Changing ${editing?.name}'s avatar.`}
-    </p>
-  {/if}
 
   {#if finished}
     <div

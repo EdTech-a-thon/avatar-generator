@@ -26,8 +26,12 @@ test("a Student builds an Avatar by picking pictures, and the preview keeps up",
   await page.goto("/builder");
 
   await expect(
-    page.getByRole("heading", { name: "Pick your skin tone" }),
+    page.getByRole("heading", { name: "How old are you?" }),
   ).toBeVisible();
+  await option(page, "About 7").click();
+  await expect(option(page, "About 7")).toHaveAttribute("aria-pressed", "true");
+
+  await step(page, "Skin").click();
   await option(page, "Skin tone 8").click();
   await expect(option(page, "Skin tone 8")).toHaveAttribute(
     "aria-pressed",
@@ -64,6 +68,7 @@ test("the steps run in order from the first screen to the name question", async 
 }) => {
   await page.goto("/builder");
   const questions = [
+    "How old are you?",
     "Pick your skin tone",
     "Pick your hair",
     "Pick your hair color",
@@ -100,6 +105,7 @@ test("going back to an earlier step keeps the later choices", async ({
 test("the Builder offers the whole v1 catalog", async ({ page }) => {
   await page.goto("/builder");
   const counts: [string, number][] = [
+    ["How old are you?", 4],
     ["Pick your skin tone", 10],
     ["Pick your hair", 48],
     ["Pick your hair color", 6],
@@ -118,6 +124,8 @@ test("the Builder offers the whole v1 catalog", async ({ page }) => {
 
 test("a Student can finish with the keyboard alone", async ({ page }) => {
   await page.goto("/builder");
+  await step(page, "Skin").focus();
+  await page.keyboard.press("Enter");
   await option(page, "Skin tone 3").focus();
   await page.keyboard.press("Enter");
   await expect(option(page, "Skin tone 3")).toHaveAttribute(
@@ -137,4 +145,29 @@ test("a Student can finish with the keyboard alone", async ({ page }) => {
   await expect(
     page.getByRole("heading", { name: "Nice work, Ava!" }),
   ).toBeVisible();
+});
+
+test("the age a Student picks changes the picture and rides into the Cutout", async ({
+  page,
+}) => {
+  await page.goto("/builder");
+
+  // A grown-up adds no transform at all, so the head group is placed the way
+  // Open Peeps placed it. Any other age moves it.
+  const head = preview(page).locator("g").nth(1);
+  await option(page, "Grown-up").click();
+  await expect(head).toHaveAttribute("transform", "translate(225 0)");
+
+  await option(page, "About 5").click();
+  await expect(head).not.toHaveAttribute("transform", "translate(225 0)");
+
+  await step(page, "Name").click();
+  await page.getByLabel("What's your first name?").fill("Ada");
+  const saving = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Save my picture" }).click();
+  await saving;
+
+  // Reopening reads the age back out of the picture that was just saved.
+  await page.goto("/builder");
+  await expect(option(page, "About 5")).toHaveAttribute("aria-pressed", "true");
 });

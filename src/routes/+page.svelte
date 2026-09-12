@@ -1,20 +1,9 @@
 <script lang="ts">
-  /**
-   * The Teacher's Class.
-   *
-   * There is no sign-in and no setup: a Class is already here on the first
-   * visit, because nearly every Teacher has exactly one. Students arrive two
-   * ways and both land here — "Add a student" hands the laptop to a child for a
-   * minute, and dropping in the pictures a class turned in brings in a whole
-   * set at once.
-   *
-   * Tidying up lives on each Student's own card, and the Classes panel stays
-   * folded away, because a Teacher with one Class should never have to think
-   * about Classes at all.
-   */
+  /** Class setup comes first; Students can make their Avatars now or later. */
   import { goto } from "$app/navigation";
   import { resolve } from "$app/paths";
   import AvatarFigure from "$lib/AvatarFigure.svelte";
+  import { defaultAvatar } from "$lib/avatar";
   import {
     addClass,
     addStudent,
@@ -53,6 +42,54 @@
 
   const room = $derived(currentClass());
   const mine = $derived(teacherAvatar());
+  let studentNames = $state("");
+  let search = $state("");
+  let showNames = $state(false);
+  const namesToAdd = $derived(
+    studentNames
+      .split("\n")
+      .map((name) => name.trim())
+      .filter(Boolean),
+  );
+  const visibleStudents = $derived(
+    room?.students.filter((student) =>
+      student.name
+        .toLocaleLowerCase()
+        .includes(search.trim().toLocaleLowerCase()),
+    ) ?? [],
+  );
+  const readyRoom = $derived(
+    room
+      ? {
+          ...room,
+          students: room.students.filter((student) => !student.needsAvatar),
+        }
+      : undefined,
+  );
+  const ready = $derived(readyRoom?.students.length ?? 0);
+
+  function addNames(event: SubmitEvent) {
+    event.preventDefault();
+    if (!room || namesToAdd.length === 0) return;
+    const count = namesToAdd.length;
+    for (const name of namesToAdd)
+      addStudent(room.id, { name, avatar: defaultAvatar(), needsAvatar: true });
+    added = `Added ${count} student${count === 1 ? "" : "s"}. Choose “Make avatar” when each student is ready.`;
+    studentNames = "";
+    showNames = false;
+    search = "";
+  }
+
+  /** Everything half-open belongs to the Class being left, so it goes with it. */
+  function switchClass(id: string) {
+    selectClass(id);
+    search = "";
+    renaming = undefined;
+    removing = undefined;
+    removingClass = false;
+    studentNames = "";
+    classNameEdit = classes().find((group) => group.id === id)?.name ?? "";
+  }
 
   let added = $state("");
   let problems = $state<ImportProblem[]>([]);
@@ -66,6 +103,7 @@
   let newName = $state("");
   let removing = $state<string | undefined>(undefined);
 
+  let classSettings = $state(false);
   let newClassName = $state("");
   let classNameEdit = $state("");
   let removingClass = $state(false);
@@ -168,18 +206,33 @@
 />
 
 <main
-  class="mx-auto flex max-w-4xl flex-col gap-6 px-4 py-8 {dropping
+  class="teacher-page mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6 sm:px-8 sm:py-8 {dropping
     ? 'bg-sky-100'
     : ''}"
 >
+  <div
+    class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-5"
+  >
+    <a href={resolve("/")} class="text-xl font-semibold text-slate-900"
+      >Avatar Generator<span class="ml-3 text-sm font-normal text-slate-500"
+        >For teachers</span
+      ></a
+    >
+    <a
+      class="rounded-xl bg-white px-4 py-3 font-semibold text-sky-800 ring-1 ring-sky-200"
+      href={resolve("/builder")}>I'm a student → Make an avatar</a
+    >
+  </div>
   <header class="flex flex-wrap items-center justify-between gap-4">
     <div class="flex flex-col gap-2">
-      <h1 class="text-3xl font-semibold text-slate-900">
+      <p class="text-sm font-semibold uppercase tracking-widest text-sky-700">
+        Your classes, your students
+      </p>
+      <h1 class="text-3xl font-semibold text-slate-900 sm:text-4xl">
         {room?.name ?? "My class"}
       </h1>
-      <p class="text-slate-600">
-        Everything here stays in this browser. No accounts, no photos, nothing
-        on a server.
+      <p class="max-w-xl text-slate-600">
+        Set up a class, add your students, then let each student make an avatar.
       </p>
     </div>
 
@@ -199,35 +252,221 @@
     </section>
   </header>
 
-  <div class="flex flex-wrap items-center gap-3">
-    <button
-      type="button"
-      class="rounded-2xl bg-sky-600 px-6 py-3 text-lg font-semibold text-white hover:bg-sky-700"
-      onclick={() => builderTab(`class=${room.id}`)}
+  <section
+    aria-label="Class setup"
+    class="rounded-3xl bg-white p-5 ring-1 ring-slate-200"
+  >
+    <div
+      class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4"
     >
-      Add a student
-    </button>
+      <label
+        class="flex min-w-0 flex-1 flex-col gap-2 font-semibold text-slate-800"
+      >
+        Current class
+        <select
+          class="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-3 text-lg"
+          value={room?.id ?? ""}
+          onchange={(event) => switchClass(event.currentTarget.value)}
+        >
+          {#each classes() as group (group.id)}
+            <option value={group.id}
+              >{group.name} · {group.students.length}
+              {group.students.length === 1 ? "student" : "students"}</option
+            >
+          {/each}
+        </select>
+      </label>
+      <button
+        type="button"
+        class="rounded-xl bg-sky-50 px-4 py-3 font-semibold text-sky-800 ring-1 ring-sky-200"
+        aria-expanded={classSettings}
+        onclick={() => {
+          classSettings = !classSettings;
+          classNameEdit = classSettings ? (room?.name ?? "") : "";
+        }}>Manage classes</button
+      >
+    </div>
+    {#if classSettings}
+      <div class="mt-4 flex flex-col gap-4 border-t border-slate-100 pt-4">
+        <form
+          class="flex flex-wrap items-end gap-2"
+          onsubmit={(event) => {
+            event.preventDefault();
+            renameClass(room.id, classNameEdit);
+            classNameEdit = room.name;
+          }}
+        >
+          <label class="flex flex-col gap-1 text-slate-700">
+            Rename this class
+            <input
+              type="text"
+              autocomplete="off"
+              bind:value={classNameEdit}
+              class="rounded-xl border-2 border-slate-300 px-3 py-2 text-lg focus:border-sky-600 focus:outline-none"
+            />
+          </label>
+          <button
+            type="submit"
+            class="rounded-xl bg-white px-4 py-2 font-semibold text-slate-700 ring-2 ring-slate-300"
+          >
+            Save class name
+          </button>
+        </form>
 
-    <label
-      class="inline-flex cursor-pointer items-center gap-2 rounded-2xl bg-white px-6 py-3 text-lg font-semibold text-slate-700 ring-2 ring-slate-300 hover:ring-slate-400"
-    >
-      Add pictures students turned in
-      <input
-        type="file"
-        accept="image/png"
-        multiple
-        class="sr-only"
-        onchange={(event) => {
-          const input = event.currentTarget;
-          importFiles(input.files);
-          input.value = "";
-        }}
-      />
-    </label>
-  </div>
-  <p class="-mt-3 text-slate-600">
-    You can also drop the pictures anywhere on this page.
-  </p>
+        <form
+          class="flex flex-wrap items-end gap-2"
+          onsubmit={(event) => {
+            event.preventDefault();
+            if (!newClassName.trim()) return;
+            const group = addClass(newClassName);
+            switchClass(group.id);
+            newClassName = "";
+          }}
+        >
+          <label class="flex flex-col gap-1 text-slate-700">
+            Name for a new class
+            <input
+              type="text"
+              autocomplete="off"
+              bind:value={newClassName}
+              class="rounded-xl border-2 border-slate-300 px-3 py-2 text-lg focus:border-sky-600 focus:outline-none"
+            />
+          </label>
+          <button
+            type="submit"
+            class="rounded-xl bg-white px-4 py-2 font-semibold text-slate-700 ring-2 ring-slate-300"
+          >
+            Add class
+          </button>
+        </form>
+
+        {#if removingClass}
+          <div
+            class="flex flex-col items-start gap-2 rounded-2xl bg-amber-50 p-3"
+          >
+            <p class="text-amber-900">
+              Delete {room.name} and its {room.students.length} student{room
+                .students.length === 1
+                ? ""
+                : "s"} for good?
+            </p>
+            <div class="flex gap-2">
+              <button
+                type="button"
+                class="rounded-xl bg-rose-600 px-4 py-2 font-semibold text-white hover:bg-rose-700"
+                onclick={() => {
+                  removeClass(room.id);
+                  removingClass = false;
+                }}
+              >
+                Yes, delete this class
+              </button>
+              <button
+                type="button"
+                class="rounded-xl bg-white px-4 py-2 font-semibold text-slate-700 ring-2 ring-slate-300"
+                onclick={() => (removingClass = false)}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        {:else}
+          <button
+            type="button"
+            class="self-start rounded-xl bg-white px-4 py-2 font-semibold text-slate-700 ring-2 ring-slate-300"
+            onclick={() => (removingClass = true)}
+          >
+            Delete this class
+          </button>
+        {/if}
+      </div>
+    {/if}
+  </section>
+
+  <section
+    aria-label="Add students"
+    class="rounded-3xl bg-sky-100/60 p-5 ring-1 ring-sky-200"
+  >
+    <h2 class="text-xl font-semibold text-slate-900">
+      Bring your class together
+    </h2>
+    <p class="mt-1 text-slate-600">
+      Add names first, take turns on this device, or collect pictures from
+      students’ own devices.
+    </p>
+    <div class="mt-4 flex flex-wrap items-center gap-3">
+      <button
+        type="button"
+        class="rounded-2xl bg-sky-700 px-5 py-3 font-semibold text-white hover:bg-sky-800"
+        aria-expanded={showNames}
+        onclick={() => (showNames = !showNames)}>Add student names</button
+      >
+      <button
+        type="button"
+        class="rounded-2xl bg-white px-5 py-3 font-semibold text-sky-800 ring-1 ring-sky-200 hover:bg-sky-50"
+        onclick={() => builderTab(`class=${room.id}`)}
+      >
+        Add a student
+      </button>
+
+      <label
+        class="inline-flex cursor-pointer items-center gap-2 rounded-2xl bg-white px-6 py-3 text-lg font-semibold text-slate-700 ring-2 ring-slate-300 hover:ring-slate-400"
+      >
+        Add pictures students turned in
+        <input
+          type="file"
+          accept="image/png"
+          multiple
+          class="sr-only"
+          onchange={(event) => {
+            const input = event.currentTarget;
+            importFiles(input.files);
+            input.value = "";
+          }}
+        />
+      </label>
+    </div>
+    <p class="mt-3 text-sm text-slate-600">
+      “Add a student” opens a new tab for taking turns. Saved PNG pictures can
+      also be dropped onto this page.
+    </p>
+    {#if showNames}
+      <form
+        onsubmit={addNames}
+        class="mt-5 flex flex-col gap-3 border-t border-sky-200 pt-5"
+      >
+        <label for="student-names" class="font-semibold text-slate-900"
+          >Student first names</label
+        >
+        <p id="names-help" class="text-sm text-slate-600">
+          One per line. Use a last initial if needed. Students choose their own
+          appearance later.
+        </p>
+        <textarea
+          id="student-names"
+          aria-describedby="names-help"
+          rows="5"
+          placeholder="Maya\nLeo\nAva R."
+          bind:value={studentNames}
+          class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-lg"
+        ></textarea>
+        <div class="flex flex-wrap gap-3">
+          <button
+            type="submit"
+            disabled={namesToAdd.length === 0}
+            class="rounded-xl bg-sky-700 px-5 py-3 font-semibold text-white disabled:opacity-40"
+            >Add {namesToAdd.length || ""}
+            {namesToAdd.length === 1 ? "name" : "names"} to class</button
+          >
+          <button
+            type="button"
+            class="rounded-xl px-4 py-3 font-semibold text-slate-700"
+            onclick={() => (showNames = false)}>Cancel</button
+          >
+        </div>
+      </form>
+    {/if}
+  </section>
 
   <div aria-live="polite" class="flex flex-col gap-2">
     {#if added}
@@ -288,19 +527,60 @@
   {/if}
 
   {#if room && room.students.length > 0}
-    <ul class="grid grid-cols-2 gap-4 sm:grid-cols-4" aria-label="Students">
-      {#each room.students as student (student.id)}
+    <div class="flex flex-wrap items-end justify-between gap-3">
+      <div>
+        <h2 class="text-2xl font-semibold text-slate-900">
+          Students <span class="text-lg font-normal text-slate-500"
+            >({room.students.length})</span
+          >
+        </h2>
+        <p class="text-slate-600">
+          {ready}
+          {ready === 1 ? "avatar" : "avatars"} ready · {room.students.length -
+            ready} to make
+        </p>
+      </div>
+      <label class="flex flex-col gap-1 text-sm text-slate-600"
+        >Find a student<input
+          type="search"
+          bind:value={search}
+          placeholder="Search by name"
+          class="rounded-xl border border-slate-300 bg-white px-4 py-3 text-base"
+        /></label
+      >
+    </div>
+    {#if visibleStudents.length === 0}<p class="text-slate-600">
+        No students match “{search}”. Try another name.
+      </p>{/if}
+    <ul
+      class="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4"
+      aria-label="Students"
+    >
+      {#each visibleStudents as student (student.id)}
         <li
           class="flex flex-col items-center gap-2 rounded-3xl bg-white p-3 ring-1 ring-slate-200"
         >
-          <AvatarFigure
-            avatar={student.avatar}
-            title="{student.name}'s avatar"
-            class="h-auto w-full"
-          />
-          <span class="text-lg font-semibold text-slate-800"
+          {#if student.needsAvatar}
+            <div
+              class="flex aspect-square w-full items-center justify-center rounded-2xl bg-sky-50 text-5xl font-semibold text-sky-300"
+              aria-hidden="true"
+            >
+              {student.name.slice(0, 1).toLocaleUpperCase()}
+            </div>
+          {:else}
+            <AvatarFigure
+              avatar={student.avatar}
+              title="{student.name}'s avatar"
+              class="h-auto w-full"
+            />
+          {/if}
+          <span
+            class="max-w-full break-words text-center text-lg font-semibold text-slate-800"
             >{student.name}</span
           >
+          {#if student.needsAvatar}<span class="text-sm text-slate-500"
+              >Ready to make an avatar</span
+            >{/if}
 
           {#if renaming === student.id}
             <form class="flex w-full flex-col gap-2" onsubmit={saveName}>
@@ -344,32 +624,36 @@
               </button>
             </div>
           {:else}
-            <div class="flex flex-wrap justify-center gap-2">
+            <div
+              class="student-actions flex w-full flex-wrap justify-center gap-2"
+            >
               <button
                 type="button"
-                class="rounded-xl bg-white px-3 py-1 font-semibold text-slate-700 ring-2 ring-slate-300"
-                onclick={() => downloadOne(student)}
+                class="w-full rounded-xl bg-sky-700 px-3 py-3 font-semibold text-white hover:bg-sky-800"
+                onclick={() =>
+                  openBuilder(`class=${room.id}&student=${student.id}`)}
               >
-                Download
+                {student.needsAvatar ? "Make avatar" : "Change avatar"}
               </button>
+              {#if !student.needsAvatar}
+                <button
+                  type="button"
+                  class="w-full rounded-xl bg-white px-3 py-2 font-semibold text-slate-700 ring-1 ring-slate-300"
+                  onclick={() => downloadOne(student)}
+                >
+                  Download
+                </button>
+              {/if}
               <button
                 type="button"
-                class="rounded-xl bg-white px-3 py-1 font-semibold text-slate-700 ring-2 ring-slate-300"
+                class="flex-1 rounded-xl bg-white px-2 py-2 font-semibold text-slate-700 ring-1 ring-slate-300"
                 onclick={() => startRenaming(student.id, student.name)}
               >
                 Rename
               </button>
               <button
                 type="button"
-                class="rounded-xl bg-white px-3 py-1 font-semibold text-slate-700 ring-2 ring-slate-300"
-                onclick={() =>
-                  openBuilder(`class=${room.id}&student=${student.id}`)}
-              >
-                Change avatar
-              </button>
-              <button
-                type="button"
-                class="rounded-xl bg-white px-3 py-1 font-semibold text-slate-700 ring-2 ring-slate-300"
+                class="flex-1 rounded-xl bg-white px-2 py-2 font-semibold text-slate-700 ring-1 ring-slate-300"
                 onclick={() => {
                   removing = student.id;
                   renaming = undefined;
@@ -414,133 +698,22 @@
     <p
       class="rounded-3xl bg-white px-4 py-8 text-center text-lg text-slate-600 ring-1 ring-slate-200"
     >
-      No students yet. Tap “Add a student” and hand over the laptop.
+      No students yet. Add their names together, or tap “Add a student” to make
+      the first avatar on this device.
     </p>
   {/if}
 
-  {#if room && room.students.length > 0}
-    <ChartPieces {room} />
+  {#if readyRoom && readyRoom.students.length > 0}
+    <ChartPieces room={readyRoom} />
   {/if}
 
-  <details class="rounded-3xl bg-white p-4 ring-1 ring-slate-200">
-    <summary class="cursor-pointer text-lg font-semibold text-slate-800"
-      >Classes</summary
-    >
-
-    <div class="flex flex-col gap-4 pt-4">
-      {#if classes().length > 1}
-        <ul class="flex flex-wrap gap-2" aria-label="My classes">
-          {#each classes() as group (group.id)}
-            <li>
-              <button
-                type="button"
-                aria-pressed={group.id === room.id}
-                class="rounded-full px-4 py-2 font-semibold ring-2 {group.id ===
-                room.id
-                  ? 'bg-slate-900 text-white ring-slate-900'
-                  : 'bg-white text-slate-700 ring-slate-300'}"
-                onclick={() => selectClass(group.id)}
-              >
-                {group.name}
-              </button>
-            </li>
-          {/each}
-        </ul>
-      {/if}
-
-      <form
-        class="flex flex-wrap items-end gap-2"
-        onsubmit={(event) => {
-          event.preventDefault();
-          renameClass(room.id, classNameEdit);
-          classNameEdit = "";
-        }}
-      >
-        <label class="flex flex-col gap-1 text-slate-700">
-          Rename this class
-          <input
-            type="text"
-            autocomplete="off"
-            bind:value={classNameEdit}
-            class="rounded-xl border-2 border-slate-300 px-3 py-2 text-lg focus:border-sky-600 focus:outline-none"
-          />
-        </label>
-        <button
-          type="submit"
-          class="rounded-xl bg-white px-4 py-2 font-semibold text-slate-700 ring-2 ring-slate-300"
-        >
-          Save class name
-        </button>
-      </form>
-
-      <form
-        class="flex flex-wrap items-end gap-2"
-        onsubmit={(event) => {
-          event.preventDefault();
-          if (!newClassName.trim()) return;
-          addClass(newClassName);
-          newClassName = "";
-        }}
-      >
-        <label class="flex flex-col gap-1 text-slate-700">
-          Name for a new class
-          <input
-            type="text"
-            autocomplete="off"
-            bind:value={newClassName}
-            class="rounded-xl border-2 border-slate-300 px-3 py-2 text-lg focus:border-sky-600 focus:outline-none"
-          />
-        </label>
-        <button
-          type="submit"
-          class="rounded-xl bg-white px-4 py-2 font-semibold text-slate-700 ring-2 ring-slate-300"
-        >
-          Add class
-        </button>
-      </form>
-
-      {#if removingClass}
-        <div
-          class="flex flex-col items-start gap-2 rounded-2xl bg-amber-50 p-3"
-        >
-          <p class="text-amber-900">
-            Delete {room.name} and its {room.students.length} student{room
-              .students.length === 1
-              ? ""
-              : "s"} for good?
-          </p>
-          <div class="flex gap-2">
-            <button
-              type="button"
-              class="rounded-xl bg-rose-600 px-4 py-2 font-semibold text-white hover:bg-rose-700"
-              onclick={() => {
-                removeClass(room.id);
-                removingClass = false;
-              }}
-            >
-              Yes, delete this class
-            </button>
-            <button
-              type="button"
-              class="rounded-xl bg-white px-4 py-2 font-semibold text-slate-700 ring-2 ring-slate-300"
-              onclick={() => (removingClass = false)}
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      {:else}
-        <button
-          type="button"
-          class="self-start rounded-xl bg-white px-4 py-2 font-semibold text-slate-700 ring-2 ring-slate-300"
-          onclick={() => (removingClass = true)}
-        >
-          Delete this class
-        </button>
-      {/if}
-    </div>
-  </details>
-
+  <aside
+    class="rounded-2xl border border-slate-200 bg-white px-5 py-4 text-slate-600"
+  >
+    <strong class="text-slate-800">Saved on this browser only.</strong> No accounts,
+    no photos, nothing on a server. Download a class file below to keep a copy or
+    move to another device.
+  </aside>
   <ClassFile />
 
   <footer class="flex flex-wrap items-center gap-4 text-slate-600">

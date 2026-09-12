@@ -14,12 +14,72 @@ function card(page: Page, name: string) {
   return page.getByRole("listitem").filter({ hasText: name });
 }
 
-/** The Classes panel is folded away by default, and clicking it again folds it back. */
+/** Class settings stay folded away until a Teacher asks to manage classes. */
 async function openClasses(page: Page) {
   if (await page.getByRole("button", { name: "Add class" }).isVisible()) return;
-  await page.getByText("Classes", { exact: true }).click();
+  await page.getByRole("button", { name: "Manage classes" }).click();
   await expect(page.getByRole("button", { name: "Add class" })).toBeVisible();
 }
+
+test("a Teacher sets up the whole class from a list of names, then one student makes their avatar", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Add student names" }).click();
+  await page.getByLabel("Student first names").fill("Maya\nLeo\n\nAva R.\n");
+  await page.getByRole("button", { name: "Add 3 names to class" }).click();
+
+  await expect(page.getByText("0 avatars ready · 3 to make")).toBeVisible();
+  await expect(card(page, "Ava R.")).toHaveCount(1);
+
+  // A name with no Avatar yet is not a chart piece: the set waits for it.
+  await expect(page.getByRole("button", { name: "Download set" })).toHaveCount(
+    0,
+  );
+
+  await card(page, "Maya").getByRole("button", { name: "Make avatar" }).click();
+  await expect(page.getByText("Changing Maya's avatar.")).toBeVisible();
+  await page.getByRole("button", { name: "Hair", exact: true }).click();
+  await page.getByRole("button", { name: "Afro", exact: true }).click();
+  await page.getByRole("button", { name: "Save changes" }).click();
+
+  await expect(page.getByRole("img", { name: "Maya's avatar" })).toBeVisible();
+  await expect(page.getByText("1 avatar ready · 2 to make")).toBeVisible();
+
+  await page.reload();
+  await expect(page.getByText("1 avatar ready · 2 to make")).toBeVisible();
+});
+
+test("a Teacher finds one student in a long class list", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Add student names" }).click();
+  await page.getByLabel("Student first names").fill("Maya\nLeo\nAva R.");
+  await page.getByRole("button", { name: "Add 3 names to class" }).click();
+
+  await page.getByLabel("Find a student").fill("av");
+  await expect(page.getByRole("listitem")).toHaveCount(1);
+  await expect(card(page, "Ava R.")).toBeVisible();
+
+  await page.getByLabel("Find a student").fill("zz");
+  await expect(page.getByText("No students match “zz”.")).toBeVisible();
+});
+
+test("switching classes in the picker shows that class's students", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await importCutout(page, "cutout-maya.png");
+
+  await openClasses(page);
+  await page.getByLabel("Name for a new class").fill("Reading group");
+  await page.getByRole("button", { name: "Add class" }).click();
+  await expect(page.getByRole("img", { name: "Maya's avatar" })).toHaveCount(0);
+
+  await page
+    .getByLabel("Current class")
+    .selectOption({ label: "My class · 1 student" });
+  await expect(page.getByRole("img", { name: "Maya's avatar" })).toBeVisible();
+});
 
 test("a Teacher tidies up a Display Name, and it stays tidied", async ({
   page,
@@ -89,14 +149,14 @@ test("removing a Student asks first, and then means it", async ({ page }) => {
   await expect(page.getByRole("img", { name: "Leo's avatar" })).toHaveCount(0);
 });
 
-test("one Class keeps the Classes panel folded away", async ({ page }) => {
+test("one Class keeps the class settings folded away", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("button", { name: "Add class" })).toBeHidden();
 
   await openClasses(page);
   await expect(page.getByRole("button", { name: "Add class" })).toBeVisible();
-  // With one Class there is nothing to switch between.
-  await expect(page.getByRole("list", { name: "My classes" })).toHaveCount(0);
+  // The class picker is always on screen, holding the one Class a Teacher has.
+  await expect(page.getByLabel("Current class")).toHaveValue(/.+/);
 });
 
 test("a specials Teacher makes several Classes, switches and renames them", async ({
@@ -121,8 +181,9 @@ test("a specials Teacher makes several Classes, switches and renames them", asyn
     page.getByRole("heading", { name: "Tuesday reading" }),
   ).toBeVisible();
 
-  await openClasses(page);
-  await page.getByRole("button", { name: "My class" }).click();
+  await page
+    .getByLabel("Current class")
+    .selectOption({ label: "My class · 1 student" });
   await expect(page.getByRole("img", { name: "Maya's avatar" })).toBeVisible();
 
   await page.reload();
@@ -173,7 +234,8 @@ test('"Add a student" adds to the Class it was opened from, whatever this tab sh
 
   // Ida belongs to the Class the tab was opened from, not the one on screen.
   await expect(page.getByRole("img", { name: "Ida's avatar" })).toHaveCount(0);
-  await openClasses(page);
-  await page.getByRole("button", { name: "My class" }).click();
+  await page
+    .getByLabel("Current class")
+    .selectOption({ label: "My class · 1 student" });
   await expect(page.getByRole("img", { name: "Ida's avatar" })).toBeVisible();
 });

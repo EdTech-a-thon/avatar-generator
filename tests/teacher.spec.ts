@@ -20,7 +20,7 @@ test("a Teacher builds their own Avatar in the same Builder, with no name questi
   await page.getByRole("button", { name: "Make my avatar" }).click();
 
   await expect(
-    page.getByRole("heading", { name: "Pick your skin tone" }),
+    page.getByRole("heading", { name: "How old are you?" }),
   ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Name", exact: true }),
@@ -51,7 +51,7 @@ test("the Teacher's Avatar is never a Student, and outlives their Classes", asyn
     page.getByRole("listitem").filter({ hasText: "Ava" }),
   ).toHaveCount(1);
 
-  await page.getByText("Classes", { exact: true }).click();
+  await page.getByRole("button", { name: "Manage classes" }).click();
   await page.getByRole("button", { name: "Delete this class" }).click();
   await page.getByRole("button", { name: "Yes, delete this class" }).click();
 
