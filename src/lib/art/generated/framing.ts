@@ -7,6 +7,6 @@ export interface FramingBox {
 }
 
 export const framing: Record<'head' | 'bust', FramingBox> = {
-  head: {"x":50,"y":-144,"width":782,"height":970},
-  bust: {"x":-261,"y":-144,"width":1362,"height":1363},
+  head: {"x":-97,"y":-286,"width":1062,"height":1228},
+  bust: {"x":-261,"y":-286,"width":1362,"height":1505},
 };

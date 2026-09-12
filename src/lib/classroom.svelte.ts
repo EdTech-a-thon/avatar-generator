@@ -17,6 +17,8 @@ export interface Student {
   /** A first name, optionally with a last initial. Exactly as typed. */
   name: string;
   avatar: Avatar;
+  /** Names can be added before Students have made their Avatars. */
+  needsAvatar?: boolean;
   /**
    * The Student who already had this name when this one arrived. It means the
    * Class view offers to move the new Avatar onto that Student instead. Two
@@ -80,6 +82,7 @@ export function settleClassroomData(value: unknown): ClassroomData | undefined {
               id: typeof student.id === "string" ? student.id : id(),
               name: typeof student.name === "string" ? student.name : "",
               avatar: settleAvatar(student.avatar),
+              ...(student.needsAvatar === true ? { needsAvatar: true } : {}),
               ...(typeof student.duplicateOf === "string"
                 ? { duplicateOf: student.duplicateOf }
                 : {}),
@@ -158,7 +161,7 @@ export function classById(
 
 export function addStudent(
   classId: string,
-  student: { name: string; avatar: Avatar },
+  student: { name: string; avatar: Avatar; needsAvatar?: boolean },
 ): Student {
   const room = data.classes.find((group) => group.id === classId);
   if (!room) throw new Error("that class is gone");
@@ -169,6 +172,7 @@ export function addStudent(
     id: id(),
     name: student.name,
     avatar: student.avatar,
+    ...(student.needsAvatar ? { needsAvatar: true } : {}),
     ...(sameName ? { duplicateOf: sameName.id } : {}),
   };
   room.students.push(added);
@@ -192,6 +196,8 @@ export function replaceWithDuplicate(classId: string, studentId: string) {
     return;
   }
   first.avatar = arrived.avatar;
+  if (arrived.needsAvatar) first.needsAvatar = true;
+  else delete first.needsAvatar;
   room.students = room.students.filter((student) => student.id !== arrived.id);
   save();
 }
@@ -253,6 +259,7 @@ export function setStudentAvatar(
   const student = findStudent(classId, studentId);
   if (!student) return;
   student.avatar = avatar;
+  delete student.needsAvatar;
   save();
 }
 

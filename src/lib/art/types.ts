@@ -14,6 +14,13 @@ export interface ArtPath {
   transform?: string;
   fill: ArtFill;
   fillRule?: "evenodd" | "nonzero";
+  /**
+   * Set on the brow-and-eye pieces of a face, and on nothing else. A young
+   * Avatar grows these about this point, which is the piece's own middle in the
+   * same coordinates as `d` (ADR 0011). Worked out once by `bun run art`,
+   * because getting it wrong is a face with a hole in it.
+   */
+  eyes?: { cx: number; cy: number };
 }
 
 export interface ArtPiece {

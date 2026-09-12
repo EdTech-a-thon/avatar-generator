@@ -16,7 +16,7 @@ async function openBuilderTab(page: Page) {
   await page.getByRole("button", { name: "Add a student" }).click();
   const tab = await opening;
   await expect(
-    tab.getByRole("heading", { name: "Pick your skin tone" }),
+    tab.getByRole("heading", { name: "How old are you?" }),
   ).toBeVisible();
   return tab;
 }
@@ -61,7 +61,7 @@ test("the Builder tab starts over for the next child, and never saves a file", a
     tab.getByText("Maya is in the class. The next student can start!"),
   ).toBeVisible();
   await expect(
-    tab.getByRole("heading", { name: "Pick your skin tone" }),
+    tab.getByRole("heading", { name: "How old are you?" }),
   ).toBeVisible();
   await tab.getByRole("button", { name: "Name", exact: true }).click();
   await expect(tab.getByLabel("What's your first name?")).toHaveValue("");

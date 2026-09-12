@@ -95,6 +95,8 @@ test("finishing saves a head-only picture with the Avatar hidden inside it", asy
   const held = decodeCutoutData(hiddenText(bytes, CUTOUT_KEYWORD)!);
   expect(held?.name).toBe("José");
   expect(held?.avatar).toEqual({
+    // Nothing picked an age, so it is the Grown-up every older Cutout settles to.
+    age: 0,
     skinTone: 7,
     hairstyle: 0,
     hairColor: 4,

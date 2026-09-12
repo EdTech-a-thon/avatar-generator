@@ -226,6 +226,87 @@ export const clothingColors = list<ColorEntry>([
   { hex: "#ffffff", label: "White clothes" },
 ]);
 
+// --- Ages -------------------------------------------------------------------
+// Open Peeps drew grown-ups, so a Student in the Builder came out looking like
+// a short adult (ADR 0005). An age is not a drawing: it is how big the head is
+// beside the shoulders and where the face sits inside the skull, which is
+// placement (ADR 0011). Every one of these is a transform `render.ts` applies
+// to the drawings that are already there.
+//
+// Position 0 is Grown-up and does nothing at all, so every Cutout and Class
+// File saved before ages existed renders exactly as it always has.
+
+export interface AgeEntry {
+  readonly label: string;
+  /** The head, about the chin, so it stays on the neck. */
+  readonly headScale: number;
+  /** Extra width on the head only: a rounder, shorter face. */
+  readonly headWiden: number;
+  /** How far the face slides down inside the skull. A big forehead reads young. */
+  readonly featureDrop: number;
+  /** The features shrink as the head grows, so they stay near life size. */
+  readonly featureScale: number;
+  /** Brows and eyes grow back, on top of `featureScale`. */
+  readonly eyeBoost: number;
+  /** The shoulders, about the same chin. */
+  readonly bodyScaleX: number;
+  readonly bodyScaleY: number;
+  /** How far the head settles into the shoulders: a shorter neck. */
+  readonly neckSink: number;
+  readonly retired?: boolean;
+}
+
+export const ages = list<AgeEntry>(
+  [
+    {
+      label: "Grown-up",
+      headScale: 1,
+      headWiden: 1,
+      featureDrop: 0,
+      featureScale: 1,
+      eyeBoost: 1,
+      bodyScaleX: 1,
+      bodyScaleY: 1,
+      neckSink: 0,
+    },
+    {
+      label: "About 13",
+      headScale: 1.08,
+      headWiden: 1.02,
+      featureDrop: 14,
+      featureScale: 0.93,
+      eyeBoost: 1.08,
+      bodyScaleX: 0.9,
+      bodyScaleY: 0.94,
+      neckSink: 8,
+    },
+    {
+      label: "About 7",
+      headScale: 1.2,
+      headWiden: 1.05,
+      featureDrop: 30,
+      featureScale: 0.85,
+      eyeBoost: 1.18,
+      bodyScaleX: 0.78,
+      bodyScaleY: 0.86,
+      neckSink: 20,
+    },
+    {
+      label: "About 5",
+      headScale: 1.28,
+      headWiden: 1.08,
+      featureDrop: 31,
+      featureScale: 0.82,
+      eyeBoost: 1.28,
+      bodyScaleX: 0.67,
+      bodyScaleY: 0.75,
+      neckSink: 33,
+    },
+  ],
+  // Youngest first: most of the children choosing one are the youngest ones.
+  { order: [3, 2, 1, 0] },
+);
+
 // --- Bust Poses -------------------------------------------------------------
 // Head and shoulders only (ADR 0007). Killer, Selena, Device, Gaming and Coffee
 // are left out: a knife, a phone and a coffee cup have no place on a chart.
@@ -273,4 +354,8 @@ export function eyewearPiece(position: number): ArtPiece | undefined {
 
 export function posePiece(position: number): ArtPiece {
   return poseArt[entryAt(poses, position).art];
+}
+
+export function ageShape(position: number): AgeEntry {
+  return entryAt(ages, position);
 }
